@@ -40,7 +40,7 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from) => {
+router.beforeEach((to, _from) => {
   const isAuthenticated = localStorage.getItem('integrity_user')
   
   if (to.name !== 'Login' && !isAuthenticated) {
