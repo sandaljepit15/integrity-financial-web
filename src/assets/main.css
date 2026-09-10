@@ -1,0 +1,29 @@
+/* src/assets/main.css */
+:root {
+  /* --- BRAND COLORS (Dark Blue Elegant) --- */
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
+  
+  --secondary-color: #0f172a; /* Warna sidebar & dark BG */
+  --secondary-hover: #1e293b;
+
+  /* --- BACKGROUND & SURFACES --- */
+  --bg-app: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-sidebar-hover: rgba(255, 255, 255, 0.05);
+
+  /* --- TEXT COLORS --- */
+  --text-main: #1e293b;
+  --text-light: #cbd5e1;
+  --text-muted: #64748b;
+
+  /* --- BORDERS --- */
+  --border-light: rgba(255, 255, 255, 0.05);
+  --border-dark: #e2e8f0;
+}
+
+/* Base styling bawaan yang bisa diakses dari semua komponen */
+body {
+  background-color: var(--bg-app);
+  color: var(--text-main);
+}
