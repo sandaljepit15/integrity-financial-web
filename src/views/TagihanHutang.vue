@@ -35,7 +35,7 @@
               </tr>
               
               <tr v-for="(item, index) in tagihans" :key="item.id">
-                <td class="text-center text-muted">{{ index + 1 }}</td>
+                <td class="text-center text-muted">{{ Number(index) + 1 }}</td>
                 <td>
                   <div class="fw-bold text-dark">{{ item.no_bukti_internal }}</div>
                   <div class="small text-muted mt-1">Ref: {{ item.nomor_tagihan }}</div>
@@ -55,7 +55,7 @@
                 </td>
                 <td class="text-center small text-muted">{{ item.created_by }}</td>
                 <td class="text-center text-nowrap">
-                  <button class="btn btn-sm btn-light text-success border me-1 shadow-sm" @click="printJurnal(item)" title="Cetak Jurnal JU INTERN">
+                  <button class="btn btn-sm btn-light text-success border me-1 shadow-sm" @click="printJurnal(item)" title="Cetak Jurnal TAGIHAN">
                     <i class="bi bi-printer"></i>
                   </button>
                   <button v-if="canDelete" class="btn btn-sm btn-light text-danger border shadow-sm" @click="deleteData(item.id, item.no_bukti_internal)" title="Void / Batalkan">
@@ -138,7 +138,7 @@
           </thead>
           <tbody>
             <tr v-for="(jurnal, idx) in itemToPrint.jurnalEntries" :key="idx">
-              <td class="text-center p-1">{{ idx + 1 }}</td>
+              <td class="text-center p-1">{{ Number(idx) + 1 }}</td>
               <td class="text-center p-1 fw-bold">{{ jurnal.coa_saldo }}</td>
               <td class="p-1 px-2">{{ jurnal.nama_akun }}</td>
               <td class="p-1 px-2 text-end">
@@ -225,7 +225,7 @@
                   <span class="input-group-text fw-bold">Rp</span>
                   <input type="text" class="form-control fw-bold text-primary" 
                          :value="formatInputRupiah(form.jumlah_tagihan)" 
-                         @input="form.jumlah_tagihan = parseRupiah($event.target.value)" 
+                         @input="handleMainNominalInput" 
                          placeholder="0">
                 </div>
               </div>
@@ -274,7 +274,7 @@
                 <div class="col-md-6 text-end">
                   <small class="text-muted fw-bold d-block mb-1">Posisi & Nominal:</small>
                   <h5 class="mb-0 fw-bold text-danger">
-                    (KREDIT) Rp {{ formatNominal(form.jumlah_tagihan) }}
+                    (KREDIT) Rp {{ formatNominal(Number(form.jumlah_tagihan)) }}
                   </h5>
                 </div>
               </div>
@@ -316,7 +316,7 @@
                           <div class="list-group list-group-flush">
                             <button v-for="coa in filteredCOA" :key="coa.id"
                                     class="list-group-item list-group-item-action p-2 small text-start border-bottom"
-                                    @click="selectRowCoa(idx, coa.coa_code)">
+                                    @click="selectRowCoa(Number(idx), coa.coa_code)">
                               <span class="fw-bold text-primary">{{ coa.coa_code }}</span> <br>
                               <span class="text-dark">{{ coa.nama }}</span>
                             </button>
@@ -339,12 +339,12 @@
                         <div v-if="activeDropdown === `row-${idx}-anggaran`" class="position-absolute bg-white border rounded shadow mt-1 p-2 custom-dropdown-menu" style="min-width: 280px;">
                           <input type="text" class="form-control form-control-sm mb-2 sticky-top" placeholder="Cari Kode / Nama Pos..." v-model="searchQuery" @click.stop>
                           <div class="list-group list-group-flush">
-                            <button class="list-group-item list-group-item-action p-2 small text-start border-bottom text-muted fst-italic" @click="selectRowAnggaran(idx, '')">
+                            <button class="list-group-item list-group-item-action p-2 small text-start border-bottom text-muted fst-italic" @click="selectRowAnggaran(Number(idx), '')">
                               -- Tanpa Anggaran --
                             </button>
                             <button v-for="ang in filteredAnggaran" :key="ang.id"
                                     class="list-group-item list-group-item-action p-2 small text-start border-bottom"
-                                    @click="selectRowAnggaran(idx, ang.id)">
+                                    @click="selectRowAnggaran(Number(idx), ang.id)">
                               <span class="fw-bold text-success">{{ ang.kode_pos }}</span> <br>
                               <span class="text-dark">{{ ang.nama_pos }}</span>
                             </button>
@@ -362,11 +362,11 @@
                     <td>
                       <input type="text" class="form-control form-control-sm text-end fw-bold" 
                              :value="formatInputRupiah(row.nominal)" 
-                             @input="row.nominal = parseRupiah($event.target.value)" 
+                             @input="(e) => handleRowNominalInput(Number(idx), e)" 
                              placeholder="0">
                     </td>
                     <td class="text-center">
-                      <button class="btn btn-sm btn-light text-danger" @click="removeJurnalRow(idx)" :disabled="form.jurnal_lawan.length === 1">
+                      <button class="btn btn-sm btn-light text-danger" @click="removeJurnalRow(Number(idx))" :disabled="form.jurnal_lawan.length === 1">
                         <i class="bi bi-trash"></i>
                       </button>
                     </td>
@@ -446,35 +446,44 @@ onMounted(async () => {
   await fetchDropdowns()
   await fetchData()
 
-  // Mendaftarkan event listener global saat komponen dimuat
   document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
-  // Membersihkan event listener saat komponen dihancurkan
   document.removeEventListener('click', handleClickOutside)
 })
 
 const canCreate = computed(() => currentUser.value?.can_create === true)
 const canDelete = computed(() => currentUser.value?.can_delete === true)
 
-// --- LOGIKA GLOBAL CLICK LISTENER ---
+// --- EVENT HANDLERS AMAN TYPE-SCRIPT ---
+const handleMainNominalInput = (e: Event) => {
+  const target = e.target as HTMLInputElement | null
+  if (target) {
+    form.value.jumlah_tagihan = parseRupiah(target.value)
+  }
+}
+
+const handleRowNominalInput = (idx: number, e: Event) => {
+  const target = e.target as HTMLInputElement | null
+  if (target) {
+    form.value.jurnal_lawan[idx].nominal = parseRupiah(target.value)
+  }
+}
+
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement
-  // Jika yang diklik BUKAN bagian dari elemen dropdown-container, tutup dropdown!
   if (!target.closest('.dropdown-container')) {
     closeAllDropdowns()
   }
 }
 
-// --- LOGIKA DROPDOWN PENCARIAN & AUTO FOCUS ---
 const toggleDropdown = (id: string) => {
   if (activeDropdown.value === id) {
     closeAllDropdowns()
   } else {
     activeDropdown.value = id
     searchQuery.value = ''
-    // Auto-Focus ke input pencarian secara otomatis
     nextTick(() => {
       const input = document.querySelector('.custom-dropdown-menu input') as HTMLInputElement
       if (input) input.focus()
@@ -800,7 +809,7 @@ const deleteData = async (id: string, no_internal: string) => {
 </script>
 
 <style scoped>
-/* CSS UNTUK OVERLAY DAN DROPDOWN CUSTOM */
+/* CSS UNTUK DROPDOWN CUSTOM */
 .cursor-pointer { cursor: pointer; }
 .dropdown-container { z-index: 1056; }
 .custom-dropdown-menu { max-height: 250px; overflow-y: auto; z-index: 1060; }
