@@ -30,17 +30,45 @@
     <!-- AREA LAPORAN (Bagian ini yang akan di-print/PDF) -->
     <div id="printable-area" class="card border-0 shadow-sm rounded-3 bg-white" v-if="reportData.length > 0">
       
-      <!-- KOMPONEN KOP SURAT DINAMIS -->
-      <PrintHeader 
-        judul="Laporan Posisi Keuangan" 
-        :periode="`${formatDate(filters.startDate)} s/d ${formatDate(filters.endDate)}`" 
-      />
-
-      <!-- TABEL DATA -->
       <div class="card-body p-0 p-print-0">
+        
+        <!-- AREA KOP SURAT (Dinamis & Seragam dengan Tagihan, hanya tampil saat Print) -->
+        <div class="d-none d-print-block mb-3 mt-2">
+          <table class="w-100 table-print table-bordered border-dark mb-3">
+            <tr>
+              <td class="p-2 align-middle">
+                <div class="d-flex align-items-center">
+                  <img v-if="company.logo_url" :src="company.logo_url" alt="Logo" style="max-height: 45px; margin-right: 15px;">
+                  <div>
+                    <h5 class="mb-0 fw-bold text-dark text-uppercase" style="font-size: 11pt;">{{ company.nama || 'NAMA INSTANSI' }}</h5>
+                    
+                    <!-- SUB NAMA -->
+                    <div v-if="company.sub_nama" style="font-size: 8pt; font-weight: bold; margin-bottom: 2px;">
+                      {{ company.sub_nama }}
+                    </div>
+                    
+                    <!-- ALAMAT & KONTAK -->
+                    <div style="font-size: 8pt; margin-bottom: 2px;">{{ company.alamat || 'Alamat Instansi' }}</div>
+                    <div style="font-size: 8pt;" v-if="company.telepon || company.email">
+                      <span v-if="company.telepon">Telp: {{ company.telepon }}</span>
+                      <span v-if="company.telepon && company.email"> | </span>
+                      <span v-if="company.email">Email: {{ company.email }}</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </table>
+          
+          <div class="text-center mb-3 mt-3">
+            <h5 class="fw-bold text-uppercase text-dark mb-1" style="font-size: 11pt; letter-spacing: 1px;">Laporan Posisi Keuangan</h5>
+            <div class="text-dark" style="font-size: 9pt;">Periode: {{ formatDate(filters.startDate) }} s/d {{ formatDate(filters.endDate) }}</div>
+          </div>
+        </div>
+
+        <!-- TABEL DATA -->
         <div class="table-responsive">
-          <!-- DITAMBAHKAN KELAS table-striped DI SINI -->
-          <table class="table table-striped table-bordered table-hover mb-0 align-middle" id="report-table">
+          <table class="table table-striped table-bordered table-hover mb-0 align-middle table-print" id="report-table">
             <thead class="table-dark text-center align-middle">
               <tr>
                 <th rowspan="2" width="10%">Kode COA</th>
@@ -58,19 +86,39 @@
               <tr v-for="item in reportData" :key="item.coa_code" :class="{'fw-bold': item.sifat === 'H' || item.sifat === 'DH'}">
                 <td class="text-center">{{ item.coa_code }}</td>
                 <td :style="{ paddingLeft: item.sifat === 'D' ? '2rem' : '0.5rem' }">{{ item.nama }}</td>
-                <td class="text-end">{{ formatRupiah(item.saldoAwal) }}</td>
-                <td class="text-end">{{ formatRupiah(item.mutasiDebet) }}</td>
-                <td class="text-end">{{ formatRupiah(item.mutasiKredit) }}</td>
-                <td class="text-end">{{ formatRupiah(item.saldoAkhir) }}</td>
+                <td class="text-end">
+                  <div class="d-flex justify-content-between px-1"><span>Rp</span> <span>{{ formatNominal(item.saldoAwal) }}</span></div>
+                </td>
+                <td class="text-end">
+                  <div class="d-flex justify-content-between px-1"><span>Rp</span> <span>{{ formatNominal(item.mutasiDebet) }}</span></div>
+                </td>
+                <td class="text-end">
+                  <div class="d-flex justify-content-between px-1"><span>Rp</span> <span>{{ formatNominal(item.mutasiKredit) }}</span></div>
+                </td>
+                <td class="text-end">
+                  <div class="d-flex justify-content-between px-1"><span>Rp</span> <span>{{ formatNominal(item.saldoAkhir) }}</span></div>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
-      </div>
-      
-      <!-- KOMPONEN TANDA TANGAN DINAMIS -->
-      <PrintFooter />
 
+        <!-- FOOTER TTD TERINTEGRASI -->
+        <div class="d-none d-print-block mt-4">
+          <p class="fst-italic fw-bold text-center mb-2" style="font-size: 8pt;">
+            *Laporan dinyatakan sah apabila telah di stamp (cap) dan ttd oleh petugas yang berwenang.
+          </p>
+          <div class="d-flex justify-content-end">
+            <table class="table-print table-bordered border-dark text-center" style="width: 50%; font-size: 9pt;">
+              <thead class="fw-bold bg-light">
+                <tr><th class="p-1" width="33%">Dibuat</th><th class="p-1" width="33%">Diperiksa</th><th class="p-1" width="33%">Disetujui</th></tr>
+              </thead>
+              <tbody><tr><td style="height: 60px;"></td><td></td><td></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 </template>
@@ -80,25 +128,37 @@ import { ref, reactive, onMounted } from 'vue'
 import { supabase } from '../utils/supabase'
 import { AppAlert } from '../utils/alert'
 import * as XLSX from 'xlsx'
-import PrintHeader from '../components/PrintHeader.vue'
-import PrintFooter from '../components/PrintFooter.vue'
 
 const reportData = ref<any[]>([])
+const company = ref<any>({}) 
+
 const filters = reactive({
   startDate: '',
   endDate: ''
 })
 
-onMounted(() => {
+onMounted(async () => {
   const today = new Date()
   const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
   filters.startDate = firstDay.toISOString().split('T')[0]
   filters.endDate = today.toISOString().split('T')[0]
+
+  await fetchCompanyProfile()
 })
 
-const formatRupiah = (angka: number) => {
+const fetchCompanyProfile = async () => {
+  try {
+    const { data } = await supabase.from('company_profile').select('*').eq('id', 1).single()
+    if (data) company.value = data
+  } catch (err) {
+    console.error('Gagal memuat profil perusahaan', err)
+  }
+}
+
+// FORMATTER NOMINAL UNTUK LAPORAN (Tanpa desimal)
+const formatNominal = (angka: number) => {
   if (!angka) return '0'
-  return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(angka)
+  return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(angka)
 }
 
 const formatDate = (dateStr: string) => {
@@ -170,58 +230,77 @@ const exportToExcel = () => {
   XLSX.writeFile(wb, `Laporan_Posisi_Keuangan_${filters.startDate}_sd_${filters.endDate}.xlsx`)
 }
 
+// LOGIKA CETAK DENGAN JEDA RENDER
 const printPDF = () => {
-  window.print()
+  setTimeout(() => {
+    window.print()
+  }, 400)
 }
 </script>
 
+<!-- CSS Global Khusus Print (Teknik Reset Layout & Penyesuaian Komponen Bootstap) -->
 <style>
-/* 
-  Style yang tidak menggunakan 'scoped' agar berlaku global untuk cetak PDF
-*/
-
-/* Modifikasi Warna Zebra Striping */
-.table-striped > tbody > tr:nth-of-type(odd) > * {
-  --bs-table-bg-type: #f8fafc;
-}
-
 @media print {
-  .sidebar, .topbar, .d-print-none {
+  /* 1. Sembunyikan elemen UI utama */
+  .screen-only, .sidebar, .topbar, .d-print-none, aside, nav, header {
     display: none !important;
   }
   
-  .main-content, .content-area, .app-layout {
+  /* 2. Bebaskan area kontainer aplikasi (Mereset Sidebar margin) */
+  .main-content, .content-area, .app-layout, body, html, #app {
     margin: 0 !important;
     padding: 0 !important;
     background-color: white !important;
     width: 100% !important;
+    max-width: 100% !important;
     height: auto !important;
     overflow: visible !important;
+    position: static !important;
   }
-  
-  .d-print-block {
+
+  /* 3. Tampilkan area cetak secara Absolute ke ujung kiri atas */
+  #printable-area {
     display: block !important;
+    width: 100% !important;
+    padding: 10px !important;
+    font-size: 9pt !important;
+    color: black !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
   }
 
-  table.table-bordered {
-    border-color: #000 !important;
-  }
-  table.table-bordered th, table.table-bordered td {
-    border: 1px solid #000 !important;
-    color: #000 !important;
+  @page { margin: 10mm; }
+  
+  /* Styling Tabel Laporan & Kop Surat */
+  .table-print { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 9pt !important; }
+  .table-print th, .table-print td { 
+    border: 1px solid black !important; 
+    color: black !important; 
+    padding: 4px 6px !important; 
   }
   
-  /* Hilangkan zebra striping saat di-print agar hemat tinta */
-  .table-striped > tbody > tr:nth-of-type(odd) > * {
-    --bs-table-bg-type: transparent !important;
-  }
+  .bg-light { background-color: #e9ecef !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .tracking-wide { letter-spacing: 2px; }
+  .text-dark { color: black !important; }
 
-  .p-print-0 {
-    padding: 0 !important;
+  /* OVERRIDE CLASS BOOTSTRAP KHUSUS PRINT */
+  .table-dark { 
+    background-color: #e9ecef !important; 
+    color: black !important; 
+    border-color: black !important; 
   }
-  .card {
-    border: none !important;
-    box-shadow: none !important;
+  .table-dark th { 
+    background-color: #e9ecef !important; 
+    color: black !important; 
+    border-color: black !important; 
   }
+  
+  /* Hilangkan zebra striping bawaan bootstrap saat print agar tinta irit */
+  .table-striped > tbody > tr:nth-of-type(odd) > * { 
+    --bs-table-bg-type: transparent !important; 
+  }
+  
+  .card { border: none !important; box-shadow: none !important; }
 }
 </style>
