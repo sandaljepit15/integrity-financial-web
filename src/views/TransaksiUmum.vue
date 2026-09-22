@@ -35,7 +35,7 @@
               </tr>
               
               <tr v-for="(item, index) in transactions" :key="item.kwitansi_internal">
-                <td class="text-center text-muted">{{ Number(index) + 1 }}</td>
+                <td class="text-center text-muted">{{ index + 1 }}</td>
                 <td class="text-center">
                   <span class="badge w-100 py-2" :class="getBadgeClass(item.jenis_transaksi)">
                     {{ formatJenis(item.jenis_transaksi) }}
@@ -49,6 +49,7 @@
                   <div class="fw-bold text-dark">{{ item.keterangan || '-' }}</div>
                   <div v-if="item.jenis_transaksi !== 'JURNAL_UMUM'" class="small text-muted mt-1">
                     <i class="bi bi-person-fill me-1"></i> {{ item.pihak_terkait || '-' }}
+                    <span v-if="item.metode_pembayaran" class="badge bg-secondary ms-1" style="font-size: 0.65rem;">{{ item.metode_pembayaran }}</span>
                   </div>
                 </td>
                 <td class="text-end fw-bold text-primary">{{ formatRupiah(item.total_nominal) }}</td>
@@ -79,60 +80,149 @@
     <div id="print-area" v-if="itemToPrint">
       <div class="print-container">
         
-        <!-- HEADER KOP SURAT DINAMIS -->
-        <table class="w-100 table-print table-bordered border-dark mb-3">
-          <tr>
-            <td width="70%" class="p-2 align-middle">
-              <div class="d-flex align-items-center">
-                <img v-if="company.logo_url" :src="company.logo_url" alt="Logo" style="max-height: 45px; margin-right: 15px;">
-                <div>
-                  <h5 class="mb-0 fw-bold text-dark text-uppercase" style="font-size: 11pt;">{{ company.nama || 'NAMA INSTANSI' }}</h5>
-                  <div v-if="company.sub_nama" style="font-size: 8pt; font-weight: bold; margin-bottom: 2px;">{{ company.sub_nama }}</div>
-                  <div style="font-size: 8pt; margin-bottom: 2px;">{{ company.alamat || 'Alamat Instansi' }}</div>
-                  <div style="font-size: 8pt;" v-if="company.telepon || company.email">
-                    <span v-if="company.telepon">Telp: {{ company.telepon }}</span>
-                    <span v-if="company.telepon && company.email"> | </span>
-                    <span v-if="company.email">Email: {{ company.email }}</span>
+        <!-- LAYOUT 1: KUITANSI TANDA TERIMA KAS (DESAIN BKK / BKM BARU) -->
+        <template v-if="printMode === 'kuitansi'">
+          <!-- HEADER KOP -->
+          <table class="w-100 table-print border-dark mb-4">
+            <tr>
+              <td width="75%" class="p-2 align-middle print-bg-gray">
+                <div class="d-flex align-items-center">
+                  <img v-if="company.logo_url" :src="company.logo_url" alt="Logo" style="max-height: 55px; margin-right: 15px;">
+                  <div>
+                    <h5 class="mb-0 fw-bold text-dark text-uppercase" style="font-size: 12pt;">{{ company.nama || 'NAMA INSTANSI' }}</h5>
+                    <div v-if="company.sub_nama" style="font-size: 9pt; font-weight: bold; margin-bottom: 2px;">{{ company.sub_nama }}</div>
+                    <div style="font-size: 9pt;" v-if="company.alamat || company.email">
+                      <span v-if="company.alamat">{{ company.alamat }}</span>
+                      <span v-if="company.alamat && company.email"> | </span>
+                      <span v-if="company.email">{{ company.email }}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </td>
-            <td width="30%" class="text-center align-middle bg-light">
-              <h4 class="mb-0 fw-bold text-dark tracking-wide" style="font-size: 13pt;">
+              </td>
+              <td width="25%" class="text-center align-middle print-bg-gray fw-bold" style="font-size: 18pt;">
                 {{ printTitle }}
-              </h4>
-            </td>
-          </tr>
-        </table>
-
-        <!-- INFO BUKTI UMUM (Digunakan oleh Bukti Jurnal Internal) -->
-        <template v-if="printMode === 'jurnal'">
-          <table class="w-100 mb-2 info-table text-dark" style="font-size: 9pt;">
-            <tr>
-              <td width="15%" class="fw-bold p-1 px-2">No Bukti</td>
-              <td width="35%" class="fw-bold p-1 px-2 text-end">{{ itemToPrint.header.kwitansi_internal }}</td>
-              <td width="15%" class="fw-bold p-1 px-2">Dibuat Oleh</td>
-              <td width="35%" class="p-1 px-2 text-end">{{ itemToPrint.header.created_by }}</td>
-            </tr>
-            <tr>
-              <td class="fw-bold p-1 px-2">Tanggal</td>
-              <td class="p-1 px-2 text-end fw-bold">{{ formatDateStr(itemToPrint.header.tanggal_transaksi) }}</td>
-              <td class="fw-bold p-1 px-2">Dicetak Oleh</td>
-              <td class="p-1 px-2 text-end">{{ currentUser?.nama || 'System' }}</td>
-            </tr>
-            <tr>
-              <td class="fw-bold p-1 px-2">Pihak Terkait</td>
-              <td class="p-1 px-2 text-end">{{ itemToPrint.header.pihak_terkait || '-' }}</td>
-              <td class="fw-bold p-1 px-2">Waktu Cetak</td>
-              <td class="p-1 px-2 text-end">{{ getCurrentPrintTime() }}</td>
+              </td>
             </tr>
           </table>
 
-          <div class="w-100 p-2 mb-3 border border-dark text-dark" style="font-size: 9pt;">
+        <!-- INFO TABLE -->
+          <table class="w-100 mb-4 text-dark" style="font-size: 9pt;">
+            <tr>
+              <td width="15%" class="fw-bold p-1">No. Kwitansi</td>
+              <td width="35%" class="p-1 fw-bold pe-2" style="text-align: right;">{{ itemToPrint.header.kwitansi_internal }}</td>
+              <td width="15%" class="fw-bold p-1 ps-4">Tanggal</td>
+              <td width="35%" class="p-1 fw-bold pe-2" style="text-align: right;">{{ formatDateStr(itemToPrint.header.tanggal_transaksi) }}</td>
+            </tr>
+            <tr>
+              <td class="fw-bold p-1">No. Kwitansi Eks</td>
+              <td class="p-1 fw-bold pe-2" style="text-align: right;">{{ itemToPrint.header.kwitansi_eksternal || '-' }}</td>
+              <td class="fw-bold p-1 ps-4">Dibuat Oleh</td>
+              <td class="p-1 pe-2" style="text-align: right;">{{ itemToPrint.header.created_by }}</td>
+            </tr>
+            <tr>
+              <td class="fw-bold p-1">No. Reff Trf</td>
+              <td class="p-1 fw-bold pe-2" style="text-align: right;">{{ itemToPrint.header.no_reff_transfer || '-' }}</td>
+              <td class="fw-bold p-1 ps-4">Timestamp</td>
+              <td class="p-1 pe-2" style="text-align: right;">{{ formatDateTime(itemToPrint.header.created_at) }}</td>
+            </tr>
+          </table>
+
+          <!-- BODY KUITANSI -->
+          <div class="text-dark" style="font-size: 10pt; border-top: 1px solid #dee2e6; padding-top: 15px;">
+            <p class="mb-3 fw-bold">
+              Telah {{ itemToPrint.header.jenis_transaksi === 'KAS_MASUK' ? 'diterima kas dari' : 'diberikan kas kepada' }} 
+              {{ itemToPrint.header.pihak_terkait }} 
+              melalui {{ itemToPrint.header.metode_pembayaran || 'Transfer/Tunai' }} pada tanggal {{ formatDateStr(itemToPrint.header.tanggal_transaksi) }} sebesar :
+            </p>
+
+            <div class="border border-dark text-center py-2 mb-3 fw-bold bg-white" style="font-size: 13pt;">
+              Rp {{ formatNominal(itemToPrint.totalDebet) }}
+            </div>
+
+            <p class="fst-italic fw-bold mb-4" style="font-size: 10pt;">
+              Terbilang : {{ formatTerbilang(itemToPrint.totalDebet) }}
+            </p>
+
+            <div class="fw-bold mb-1" style="font-size: 10pt;">Untuk Tujuan</div>
+            <div class="border border-dark p-2 mb-5 bg-white" style="font-size: 10pt; min-height: 45px;">
+              {{ itemToPrint.header.keterangan }}
+            </div>
+          </div>
+
+          <!-- SIGNATURES -->
+          <table class="w-100 text-center text-dark" style="font-size: 10pt;">
+            <tr>
+              <td width="40%"></td>
+              <td width="30%" class="fw-bold">Bendahara</td>
+              <td width="30%" class="fw-bold">{{ itemToPrint.header.jenis_transaksi === 'KAS_MASUK' ? 'Penyetor' : 'Penerima' }}</td>
+            </tr>
+            <tr>
+              <td style="height: 80px;"></td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td class="text-start align-bottom" style="font-size: 9pt;">
+                <div class="mb-1">
+                  <span class="fw-bold d-inline-block" style="width: 70px;">Tgl. Cetak</span> 
+                  : {{ formatDateStr(new Date().toISOString()) }}
+                </div>
+                <i style="font-size: 8pt;">*) Bukti dinyatakan sah apabila telah di cap dan di tandatangani</i>
+              </td>
+              <td class="fw-bold">{{ itemToPrint.header.created_by }}</td>
+              <td class="fw-bold">{{ itemToPrint.header.pihak_terkait }}</td>
+            </tr>
+          </table>
+        </template>
+
+        <!-- LAYOUT 2: BUKTI JURNAL INTERNAL (JU-INTERN) -->
+        <template v-if="printMode === 'jurnal'">
+          <!-- HEADER KOP JURNAL -->
+          <table class="w-100 table-print border-dark mb-3">
+            <tr>
+              <td width="70%" class="p-2 align-middle">
+                <div class="d-flex align-items-center">
+                  <img v-if="company.logo_url" :src="company.logo_url" alt="Logo" style="max-height: 45px; margin-right: 15px;">
+                  <div>
+                    <h5 class="mb-0 fw-bold text-dark text-uppercase" style="font-size: 11pt;">{{ company.nama || 'NAMA INSTANSI' }}</h5>
+                    <div v-if="company.sub_nama" style="font-size: 8pt; font-weight: bold; margin-bottom: 2px;">{{ company.sub_nama }}</div>
+                    <div style="font-size: 8pt; margin-bottom: 2px;">{{ company.alamat || 'Alamat Instansi' }}</div>
+                  </div>
+                </div>
+              </td>
+              <td width="30%" class="text-center align-middle bg-light">
+                <h4 class="mb-0 fw-bold text-dark tracking-wide" style="font-size: 13pt;">
+                  {{ printTitle }}
+                </h4>
+              </td>
+            </tr>
+          </table>
+
+          <table class="w-100 mb-2 info-table text-dark" style="font-size: 9pt;">
+            <tr>
+              <td width="15%" class="fw-bold p-1 px-2">No Bukti</td>
+              <td width="35%" class="fw-bold p-1 px-2 pe-2" style="text-align: right;">{{ itemToPrint.header.kwitansi_internal }}</td>
+              <td width="15%" class="fw-bold p-1 px-2">Tanggal</td>
+              <td width="35%" class="p-1 px-2 fw-bold pe-2" style="text-align: right;">{{ formatDateStr(itemToPrint.header.tanggal_transaksi) }}</td>
+            </tr>
+            <tr>
+              <td class="fw-bold p-1 px-2">Dibuat Oleh</td>
+              <td class="p-1 px-2 pe-2" style="text-align: right;">{{ itemToPrint.header.created_by }}</td>
+              <td class="fw-bold p-1 px-2">Timestamp</td>
+              <td class="p-1 px-2 pe-2" style="text-align: right;">{{ formatDateTime(itemToPrint.header.created_at) }}</td>
+            </tr>
+            <tr>
+              <td class="fw-bold p-1 px-2">Pihak Terkait</td>
+              <td class="p-1 px-2 pe-2" style="text-align: right;">{{ itemToPrint.header.pihak_terkait || '-' }}</td>
+              <td class="fw-bold p-1 px-2">Dicetak Oleh</td>
+              <td class="p-1 px-2 pe-2" style="text-align: right;">{{ currentUser?.nama || 'System' }}</td>
+            </tr>
+          </table>
+
+          <div class="w-100 p-2 mb-3 mt-3 border border-dark text-dark" style="font-size: 9pt;">
             <strong>Uraian Transaksi:</strong> {{ itemToPrint.header.keterangan }}
           </div>
 
-          <!-- TABEL JURNAL -->
           <table class="w-100 table-print table-bordered border-dark text-dark">
             <thead class="text-center fw-bold bg-light">
               <tr>
@@ -145,7 +235,7 @@
             </thead>
             <tbody>
               <tr v-for="(jurnal, idx) in itemToPrint.details" :key="idx">
-                <td class="text-center p-1">{{ Number(idx) + 1 }}</td>
+                <td class="text-center p-1">{{ Number(idx) + 1 }}</td>              
                 <td class="text-center p-1 fw-bold">{{ jurnal.coa_saldo }}</td>
                 <td class="p-1 px-2">{{ jurnal.nama_akun }}</td>
                 <td class="p-1 px-2 text-end"><div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(jurnal.debet) }}</span></div></td>
@@ -160,45 +250,25 @@
               </tr>
             </tfoot>
           </table>
-        </template>
 
-        <!-- LAYOUT 2: KUITANSI TANDA TERIMA (KAS MASUK / KELUAR) -->
-        <template v-if="printMode === 'kuitansi'">
-          <table class="w-100 mb-3 info-table text-dark" style="font-size: 9pt;">
-            <tr>
-              <td width="15%" class="fw-bold p-1 px-2">No Kuitansi</td>
-              <td width="35%" class="fw-bold p-1 px-2 text-end">{{ itemToPrint.header.kwitansi_internal }}</td>
-              <td width="15%" class="fw-bold p-1 px-2">Tanggal</td>
-              <td width="35%" class="p-1 px-2 text-end fw-bold">{{ formatDateStr(itemToPrint.header.tanggal_transaksi) }}</td>
-            </tr>
-          </table>
-
-          <div class="w-100 p-4 mb-4 mt-2 border border-dark text-dark text-center" style="font-size: 11pt; line-height: 2; background-color: #f8f9fa;">
-            Telah 
-            <strong>{{ itemToPrint.header.jenis_transaksi === 'KAS_MASUK' ? 'diterima dari' : 'dibayarkan kepada' }}</strong> 
-            <strong class="fs-6 text-uppercase text-decoration-underline ms-1">{{ itemToPrint.header.pihak_terkait }}</strong><br>
-            
-            Uang sebesar <strong class="fs-5 text-primary">Rp {{ formatNominal(itemToPrint.totalDebet) }}</strong><br>
-            
-            Untuk tujuan/keperluan pembayaran:<br>
-            <strong>" {{ itemToPrint.header.keterangan }} "</strong>
+          <div class="mt-4 text-dark">
+            <div class="text-start mb-2" style="font-size: 9pt;">
+              <span class="fw-bold d-inline-block" style="width: 70px;">Tgl. Cetak</span> 
+              : {{ formatDateTime(new Date().toISOString()) }}
+            </div>
+            <p class="fst-italic fw-bold text-center mb-2" style="font-size: 8pt;">
+              *Dokumen dinyatakan sah apabila telah di stamp (cap) dan ttd oleh pihak yang berwenang.
+            </p>
+            <div class="d-flex justify-content-end">
+              <table class="table-print table-bordered border-dark text-center" style="width: 50%; font-size: 9pt;">
+                <thead class="fw-bold bg-light">
+                  <tr><th class="p-1" width="33%">Dibuat</th><th class="p-1" width="33%">Diperiksa</th><th class="p-1" width="33%">Disetujui</th></tr>
+                </thead>
+                <tbody><tr><td style="height: 60px;"></td><td></td><td></td></tr></tbody>
+              </table>
+            </div>
           </div>
         </template>
-
-        <!-- FOOTER TTD -->
-        <div class="mt-4">
-          <p class="fst-italic fw-bold text-center mb-2" style="font-size: 8pt;">
-            *Dokumen dinyatakan sah apabila telah di stamp (cap) dan ttd oleh pihak yang berwenang.
-          </p>
-          <div class="d-flex justify-content-end">
-            <table class="table-print table-bordered border-dark text-center" style="width: 50%; font-size: 9pt;">
-              <thead class="fw-bold bg-light">
-                <tr><th class="p-1" width="33%">Dibuat</th><th class="p-1" width="33%">Diperiksa</th><th class="p-1" width="33%">Disetujui</th></tr>
-              </thead>
-              <tbody><tr><td style="height: 60px;"></td><td></td><td></td></tr></tbody>
-            </table>
-          </div>
-        </div>
 
       </div>
     </div>
@@ -206,11 +276,9 @@
 
     <!-- MODAL FORM INPUT TRANSAKSI -->
     <div v-if="isModalOpen" class="custom-modal-overlay screen-only">
-      
       <div v-if="activeDropdown" class="position-fixed top-0 start-0 w-100 h-100 overlay-dropdown" @click="closeAllDropdowns"></div>
 
       <div class="custom-modal-card card border-0 shadow-lg rounded-4 overflow-hidden" style="max-width: 1000px; width: 95%; z-index: 1050;">
-        
         <div class="card-header bg-white border-bottom p-0 d-flex justify-content-between align-items-center flex-shrink-0">
           <ul class="nav nav-tabs border-0 mt-3 ms-3" role="tablist">
             <li class="nav-item" role="presentation">
@@ -225,7 +293,7 @@
             </li>
             <li class="nav-item" role="presentation">
               <button class="nav-link fw-bold px-4" :class="{ 'active text-dark border-bottom-0': form.type === 'JURNAL_UMUM' }" @click="changeFormType('JURNAL_UMUM')">
-                <i class="bi bi-journal-text me-1"></i> Jurnal Umum (JU)
+                <i class="bi bi-journal-text me-1"></i> Jurnal Umum (JUI)
               </button>
             </li>
           </ul>
@@ -238,8 +306,12 @@
             <h6 class="fw-bold mb-3 border-bottom pb-2">Data Header Transaksi</h6>
             <div class="row g-3">
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Nomor Bukti <span class="text-danger">*</span></label>
+                <label class="form-label small fw-bold">Nomor Bukti Internal <span class="text-danger">*</span></label>
                 <input type="text" class="form-control fw-bold" v-model="form.no_bukti" readonly>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Nomor Eksternal / Referensi</label>
+                <input type="text" class="form-control" v-model="form.kwitansi_eksternal" placeholder="Opsional...">
               </div>
               <div class="col-md-4">
                 <label class="form-label small fw-bold">Tanggal Transaksi <span class="text-danger">*</span></label>
@@ -247,14 +319,30 @@
               </div>
               
               <!-- Pihak Terkait HANYA TAMPIL untuk Kas -->
-              <div class="col-md-4" v-if="form.type !== 'JURNAL_UMUM'">
+              <div class="col-md-5" v-if="form.type !== 'JURNAL_UMUM'">
                 <label class="form-label small fw-bold">
                   {{ form.type === 'KAS_MASUK' ? 'Diterima Dari' : 'Dibayarkan Kepada' }} <span class="text-danger">*</span>
                 </label>
                 <input type="text" class="form-control" v-model="form.pihak_terkait" placeholder="Ketik nama pihak/orang...">
               </div>
 
-              <div :class="form.type === 'JURNAL_UMUM' ? 'col-md-8' : 'col-12'">
+              <!-- Metode Pembayaran & Reff Transfer HANYA TAMPIL untuk Kas -->
+              <div class="col-md-3" v-if="form.type !== 'JURNAL_UMUM'">
+                <label class="form-label small fw-bold">Metode Pembayaran <span class="text-danger">*</span></label>
+                <select class="form-select" v-model="form.metode_pembayaran">
+                  <option value="Transfer Bank">Transfer Bank</option>
+                  <option value="Tunai (Cash)">Tunai (Cash)</option>
+                  <option value="QRIS / E-Wallet">QRIS / E-Wallet</option>
+                  <option value="Giro / Cek">Giro / Cek</option>
+                </select>
+              </div>
+
+              <div class="col-md-4" v-if="form.type !== 'JURNAL_UMUM'">
+                <label class="form-label small fw-bold">No. Reff Transfer Bank</label>
+                <input type="text" class="form-control" v-model="form.no_reff_transfer" placeholder="Opsional (Bukti TF)..." :disabled="form.metode_pembayaran === 'Tunai (Cash)'">
+              </div>
+
+              <div class="col-12">
                 <label class="form-label small fw-bold">Uraian / Keterangan Umum <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" v-model="form.keterangan" placeholder="Keterangan transaksi secara keseluruhan...">
               </div>
@@ -365,7 +453,6 @@
                       </div>
                     </td>
                     <td>
-                      <!-- POSISI HANYA BISA DIUBAH JIKA JURNAL UMUM -->
                       <select class="form-select form-select-sm" v-model="row.posisi" 
                               :disabled="form.type !== 'JURNAL_UMUM'"
                               :class="row.posisi === 'D' ? 'text-primary fw-bold' : 'text-danger fw-bold'">
@@ -436,14 +523,17 @@ const isModalOpen = ref(false)
 const currentUser = ref<any>(null)
 const itemToPrint = ref<any>(null)
 const printMode = ref<'jurnal' | 'kuitansi'>('jurnal')
-const printTitle = ref('BUKTI JURNAL')
+const printTitle = ref('JU-INTERN') 
 
 const activeDropdown = ref<string | null>(null)
 const searchQuery = ref('')
 
 const form = ref<any>({
-  type: 'KAS_MASUK', // Default
+  type: 'KAS_MASUK',
   no_bukti: '', 
+  kwitansi_eksternal: '', 
+  no_reff_transfer: '', 
+  metode_pembayaran: 'Transfer Bank', // Nilai default dropdown
   tanggal: '', 
   keterangan: '', 
   pihak_terkait: '', 
@@ -469,23 +559,41 @@ onUnmounted(() => {
 const canCreate = computed(() => currentUser.value?.can_create === true)
 const canDelete = computed(() => currentUser.value?.can_delete === true)
 
-// Auto Generator Nomor Bukti
 const generateNoBukti = (type: string) => {
   const now = new Date()
-  const randomStr = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
-  const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g,'')
-  const prefix = type === 'KAS_MASUK' ? 'BKM' : (type === 'KAS_KELUAR' ? 'BKK' : 'JU')
-  return `${prefix}-${yyyymmdd}-${randomStr}`
+  
+  // 1. Format Tanggal (YYYYMMDD)
+  const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g, '')
+  
+  // 2. Tentukan Prefix (JUI untuk Jurnal Umum Internal)
+  const prefix = type === 'KAS_MASUK' ? 'BKM' : (type === 'KAS_KELUAR' ? 'BKK' : 'JUI')
+  
+  // 3. Generate 6 Digit Unik
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let uniqCode = ''
+  for (let i = 0; i < 6; i++) {
+    uniqCode += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  
+  // 4. Format User ID (Hanya mengambil user_id, diabaikan bagian namanya)
+  let userId = 'SYSTEM'
+  if (currentUser.value?.user_id) {
+    let rawId = String(currentUser.value.user_id).replace(/\s+/g, '').toUpperCase()
+    // Jika ID terlalu panjang (misal UUID), ambil 6 karakter saja. Jika pendek, ambil semua.
+    userId = rawId.length > 8 ? rawId.substring(0, 6) : rawId
+  }
+
+  // Gabungkan
+  return `${prefix}-${yyyymmdd}-${uniqCode}-${userId}`
 }
 
 const changeFormType = (newType: string) => {
   form.value.type = newType
   form.value.no_bukti = generateNoBukti(newType)
   
-  // Set default grid lawannya
   let defaultPosisi = 'D'
-  if (newType === 'KAS_MASUK') defaultPosisi = 'K' // Lawan kas masuk adalah kredit
-  if (newType === 'KAS_KELUAR') defaultPosisi = 'D' // Lawan kas keluar adalah debet
+  if (newType === 'KAS_MASUK') defaultPosisi = 'K'
+  if (newType === 'KAS_KELUAR') defaultPosisi = 'D'
   
   form.value.rincian = [{ coa_code: '', pos_anggaran_id: '', posisi: defaultPosisi, nominal: 0 }]
 }
@@ -587,7 +695,12 @@ const formatDate = (dateStr: string) => {
 const formatDateStr = (dateStr: string) => {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
-  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth()+1).padStart(2, '0')}-${d.getFullYear()}`
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`
+}
+const formatDateTime = (dateStr: string) => {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr)
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 const formatRupiah = (angka: number) => {
   if (!angka) return 'Rp 0'
@@ -606,9 +719,24 @@ const formatInputRupiah = (val: number | string) => {
   if (!val || val === 0 || val === '0') return ''
   return new Intl.NumberFormat('id-ID').format(Number(val))
 }
-const getCurrentPrintTime = () => {
-  const d = new Date()
-  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth()+1).padStart(2, '0')}-${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
+
+const terbilang = (angka: number): string => {
+  const bilangan = ['','Satu','Dua','Tiga','Empat','Lima','Enam','Tujuh','Delapan','Sembilan','Sepuluh','Sebelas']
+  if (angka < 12) return bilangan[angka]
+  if (angka < 20) return terbilang(angka - 10) + ' Belas'
+  if (angka < 100) return terbilang(Math.floor(angka / 10)) + ' Puluh ' + terbilang(angka % 10)
+  if (angka < 200) return 'Seratus ' + terbilang(angka - 100)
+  if (angka < 1000) return terbilang(Math.floor(angka / 100)) + ' Ratus ' + terbilang(angka % 100)
+  if (angka < 2000) return 'Seribu ' + terbilang(angka - 1000)
+  if (angka < 1000000) return terbilang(Math.floor(angka / 1000)) + ' Ribu ' + terbilang(angka % 1000)
+  if (angka < 1000000000) return terbilang(Math.floor(angka / 1000000)) + ' Juta ' + terbilang(angka % 1000000)
+  if (angka < 1000000000000) return terbilang(Math.floor(angka / 1000000000)) + ' Miliar ' + terbilang(angka % 1000000000)
+  return ''
+}
+const formatTerbilang = (angka: number) => {
+  if (!angka) return 'Nol Rupiah'
+  let result = terbilang(angka).replace(/\s+/g, ' ').trim()
+  return result + ' Rupiah'
 }
 
 const fetchCompanyProfile = async () => {
@@ -620,54 +748,35 @@ const fetchCompanyProfile = async () => {
 
 const fetchDropdowns = async () => {
   try {
-    // [Catatan: Biarkan query master_hutang di file Tagihan/Pembayaran tetap ada di bagian ini]
-
-    // 1. Tarik COA (Hanya Detail DAN BUKAN akun Laba Rugi Berjalan)
-    let coaQuery = supabase
-      .from('coas')
-      .select('*')
-      .eq('sifat', 'D')
-      .order('coa_code', { ascending: true })
-
-    // Mengecualikan COA Laba Rugi Berjalan jika sudah di-setting di profil perusahaan
+    let coaQuery = supabase.from('coas').select('*').eq('sifat', 'D').order('coa_code', { ascending: true })
     if (company.value?.coa_laba_rugi_berjalan) {
       coaQuery = coaQuery.neq('coa_code', company.value.coa_laba_rugi_berjalan)
     }
-
     const { data: coaData } = await coaQuery
     listCOA.value = coaData || []
 
-    // 2. Tarik ANGGARAN (Hanya Detail)
-    const { data: angData } = await supabase
-      .from('anggaran')
-      .select('*')
-      .eq('sifat', 'D')
+    const { data: angData } = await supabase.from('anggaran').select('*').eq('sifat', 'D')
     listAnggaran.value = angData || []
-
-  } catch (err) { 
-    console.error('Gagal memuat referensi', err) 
-  }
+  } catch (err) {}
 }
 
 const fetchData = async () => {
   AppAlert.loading('Memuat data...')
   try {
-    // Kita men-query tabel transaksi, mengelompokkannya per kwitansi_internal secara unik (Distinct) di level UI
     const { data, error } = await supabase.from('transaksi')
-      .select('kwitansi_internal, jenis_transaksi, tanggal_transaksi, keterangan, pihak_terkait, created_by, debet')
+      .select('kwitansi_internal, jenis_transaksi, tanggal_transaksi, keterangan, pihak_terkait, metode_pembayaran, created_by, debet')
       .in('jenis_transaksi', ['KAS_MASUK', 'KAS_KELUAR', 'JURNAL_UMUM'])
       .order('created_at', { ascending: false })
       
     if (error) throw error
 
-    // Grouping data (Karena 1 jurnal ada bnyk baris debet/kredit, kita satukan untuk UI Table)
     const grouped = new Map()
     data.forEach(row => {
       if (!grouped.has(row.kwitansi_internal)) {
         grouped.set(row.kwitansi_internal, { ...row, total_nominal: 0 })
       }
       const existing = grouped.get(row.kwitansi_internal)
-      existing.total_nominal += Number(row.debet) // Total debet = total transaksi
+      existing.total_nominal += Number(row.debet)
     })
 
     transactions.value = Array.from(grouped.values())
@@ -678,7 +787,12 @@ const fetchData = async () => {
 const openAddModal = () => {
   if (!canCreate.value) return
   form.value = { 
-    type: 'KAS_MASUK', no_bukti: generateNoBukti('KAS_MASUK'), tanggal: new Date().toISOString().slice(0,10), 
+    type: 'KAS_MASUK', 
+    no_bukti: generateNoBukti('KAS_MASUK'), 
+    kwitansi_eksternal: '', 
+    no_reff_transfer: '',
+    metode_pembayaran: 'Transfer Bank',
+    tanggal: new Date().toISOString().slice(0,10), 
     keterangan: '', pihak_terkait: '', coa_kas: '', rincian: [{ coa_code: '', pos_anggaran_id: '', posisi: 'K', nominal: 0 }] 
   }
   isModalOpen.value = true
@@ -689,7 +803,7 @@ const closeModal = () => {
   closeAllDropdowns()
 }
 
-// CETAK JURNAL INTERNAL (Semua Jenis)
+// CETAK JURNAL INTERNAL 
 const printJurnal = async (kwitansi_internal: string) => {
   AppAlert.loading('Mempersiapkan Jurnal...')
   try {
@@ -706,14 +820,14 @@ const printJurnal = async (kwitansi_internal: string) => {
 
     itemToPrint.value = { header: data[0], details, totalDebet: tD, totalKredit: tK }
     printMode.value = 'jurnal'
-    printTitle.value = 'BUKTI JURNAL'
+    printTitle.value = 'JU-INTERN' 
     
     AppAlert.close()
     await nextTick(); setTimeout(() => window.print(), 400)
   } catch (err) { AppAlert.error('Gagal', err) }
 }
 
-// CETAK KUITANSI (Khusus Kas Masuk/Keluar)
+// CETAK KUITANSI (BKM/BKK)
 const printKuitansi = async (kwitansi_internal: string) => {
   AppAlert.loading('Mempersiapkan Kuitansi...')
   try {
@@ -721,13 +835,12 @@ const printKuitansi = async (kwitansi_internal: string) => {
       .select('*').eq('kwitansi_internal', kwitansi_internal)
     if (error) throw error
 
-    // Total Nominal adalah total Debet (karena Debet = Kredit)
     let totalMutasi = 0
     data.forEach(d => totalMutasi += Number(d.debet))
 
     itemToPrint.value = { header: data[0], totalDebet: totalMutasi }
     printMode.value = 'kuitansi'
-    printTitle.value = data[0].jenis_transaksi === 'KAS_MASUK' ? 'KUITANSI PENERIMAAN' : 'KUITANSI PENGELUARAN'
+    printTitle.value = data[0].jenis_transaksi === 'KAS_MASUK' ? 'BKM' : 'BKK'
     
     AppAlert.close()
     await nextTick(); setTimeout(() => window.print(), 400)
@@ -740,7 +853,6 @@ const saveData = async () => {
     return
   }
 
-  // Validasi khusus Kas
   if (form.value.type !== 'JURNAL_UMUM') {
     if (!form.value.pihak_terkait || !form.value.coa_kas) {
       AppAlert.error('Gagal', 'Pihak Terkait dan Akun Kas Utama wajib diisi.')
@@ -748,7 +860,6 @@ const saveData = async () => {
     }
   }
 
-  // Validasi Rincian & Balance
   const hasEmptyCoa = form.value.rincian.some((r: any) => !r.coa_code || Number(r.nominal) <= 0)
   if (hasEmptyCoa) {
     AppAlert.error('Gagal', 'Semua baris rincian harus memiliki COA dan Nominal lebih dari 0.')
@@ -766,12 +877,14 @@ const saveData = async () => {
     const now = new Date().toISOString()
     const payload = []
 
-    // 1. Jika Kas, masukkan Jurnal Utama (Akun Kas) terlebih dahulu
     if (form.value.type !== 'JURNAL_UMUM') {
       const nominalUtama = form.value.type === 'KAS_MASUK' ? totalKredit.value : totalDebet.value
       payload.push({
         tanggal_transaksi: form.value.tanggal,
         kwitansi_internal: form.value.no_bukti,
+        kwitansi_eksternal: form.value.kwitansi_eksternal || null, 
+        no_reff_transfer: form.value.no_reff_transfer || null, 
+        metode_pembayaran: form.value.metode_pembayaran, // Field Baru
         jenis_transaksi: form.value.type,
         keterangan: form.value.keterangan,
         pihak_terkait: form.value.pihak_terkait,
@@ -783,16 +896,18 @@ const saveData = async () => {
       })
     }
 
-    // 2. Masukkan array Rincian
     form.value.rincian.forEach((row: any) => {
       payload.push({
         tanggal_transaksi: form.value.tanggal,
         kwitansi_internal: form.value.no_bukti,
+        kwitansi_eksternal: form.value.kwitansi_eksternal || null, 
+        no_reff_transfer: form.value.no_reff_transfer || null, 
+        metode_pembayaran: form.value.type !== 'JURNAL_UMUM' ? form.value.metode_pembayaran : null, // Field Baru
         jenis_transaksi: form.value.type,
         keterangan: form.value.keterangan,
         pihak_terkait: form.value.type !== 'JURNAL_UMUM' ? form.value.pihak_terkait : null,
         coa_saldo: row.coa_code,
-        coa_anggaran: row.pos_anggaran_id || null, // Catat realisasi anggaran jika ada
+        coa_anggaran: row.pos_anggaran_id || null,
         debet: row.posisi === 'D' ? Number(row.nominal) : 0,
         kredit: row.posisi === 'K' ? Number(row.nominal) : 0,
         created_by: currentUsername,
@@ -873,7 +988,10 @@ const deleteData = async (kwitansi_internal: string) => {
   .table-print { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 9pt !important; }
   .table-print th, .table-print td { border: 1px solid black !important; color: black !important; padding: 4px 6px !important; }
   .info-table td { border: none !important; padding: 2px 8px !important; }
+  
   .bg-light { background-color: #e9ecef !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .print-bg-gray { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  
   .tracking-wide { letter-spacing: 2px; }
   .text-dark { color: black !important; }
 }

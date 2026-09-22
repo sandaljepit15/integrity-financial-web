@@ -107,31 +107,31 @@
           </tr>
         </table>
 
-        <!-- INFO BUKTI -->
-        <table class="w-100 mb-2 info-table text-dark" style="font-size: 9pt;">
-          <tr>
-            <td width="15%" class="fw-bold p-1 px-2">No Bukti</td>
-            <td width="35%" class="fw-bold p-1 px-2 text-end">{{ itemToPrint.no_bukti_internal }}</td>
-            <td width="15%" class="fw-bold p-1 px-2">Dibuat Oleh</td>
-            <td width="35%" class="p-1 px-2 text-end">{{ itemToPrint.created_by }}</td>
-          </tr>
-          <tr>
-            <td class="fw-bold p-1 px-2">Tanggal</td>
-            <td class="p-1 px-2 text-end fw-bold">{{ formatDateStr(itemToPrint.tanggal_tagihan) }}</td>
-            <td class="fw-bold p-1 px-2">Dicetak Oleh</td>
-            <td class="p-1 px-2 text-end">{{ currentUser?.nama || 'System' }}</td>
-          </tr>
-          <tr>
-            <td class="fw-bold p-1 px-2">Bukti Eksternal</td>
-            <td class="p-1 px-2 text-end">{{ itemToPrint.nomor_tagihan }}</td>
-            <td class="fw-bold p-1 px-2">Waktu Cetak</td>
-            <td class="p-1 px-2 text-end">{{ getCurrentPrintTime() }}</td>
-          </tr>
-        </table>
-
         <!-- LAYOUT 1: BUKTI JURNAL INTERNAL -->
         <template v-if="printMode === 'jurnal'">
-          <div class="w-100 p-2 mb-3 border border-dark text-dark" style="font-size: 9pt;">
+          
+          <table class="w-100 mb-2 info-table text-dark" style="font-size: 9pt;">
+            <tr>
+              <td width="15%" class="fw-bold p-1 px-2">No Bukti</td>
+              <td width="35%" class="fw-bold p-1 px-2 pe-2" style="text-align: right;">{{ itemToPrint.no_bukti_internal }}</td>
+              <td width="15%" class="fw-bold p-1 px-2">Tanggal</td>
+              <td width="35%" class="p-1 px-2 fw-bold pe-2" style="text-align: right;">{{ formatDateStr(itemToPrint.tanggal_tagihan) }}</td>
+            </tr>
+            <tr>
+              <td class="fw-bold p-1 px-2">Bukti Eksternal</td>
+              <td class="p-1 px-2 pe-2" style="text-align: right;">{{ itemToPrint.nomor_tagihan || '-' }}</td>
+              <td class="fw-bold p-1 px-2">Timestamp</td>
+              <td class="p-1 px-2 pe-2" style="text-align: right;">{{ formatDateTime(itemToPrint.created_at) }}</td>
+            </tr>
+            <tr>
+              <td class="fw-bold p-1 px-2">Dibuat Oleh</td>
+              <td class="p-1 px-2 pe-2" style="text-align: right;">{{ itemToPrint.created_by }}</td>
+              <td class="fw-bold p-1 px-2">Dicetak Oleh</td>
+              <td class="p-1 px-2 pe-2" style="text-align: right;">{{ currentUser?.nama || 'System' }}</td>
+            </tr>
+          </table>
+
+          <div class="w-100 p-2 mb-3 mt-3 border border-dark text-dark" style="font-size: 9pt;">
             <strong>Uraian Transaksi:</strong> {{ itemToPrint.keterangan }}
           </div>
 
@@ -170,33 +170,83 @@
               </tr>
             </tfoot>
           </table>
+
+          <div class="mt-4 text-dark">
+            <div class="text-start mb-2" style="font-size: 9pt;">
+              <span class="fw-bold d-inline-block" style="width: 70px;">Tgl. Cetak</span> 
+              : {{ formatDateTime(new Date().toISOString()) }}
+            </div>
+            <p class="fst-italic fw-bold text-center mb-2" style="font-size: 8pt;">
+              *Dokumen dinyatakan sah apabila telah di stamp (cap) dan ttd oleh pihak yang berwenang.
+            </p>
+            <div class="d-flex justify-content-end">
+              <table class="table-print table-bordered border-dark text-center" style="width: 50%; font-size: 9pt;">
+                <thead class="fw-bold bg-light">
+                  <tr><th class="p-1" width="33%">Dibuat</th><th class="p-1" width="33%">Diperiksa</th><th class="p-1" width="33%">Disetujui</th></tr>
+                </thead>
+                <tbody><tr><td style="height: 60px;"></td><td></td><td></td></tr></tbody>
+              </table>
+            </div>
+          </div>
         </template>
 
-        <!-- LAYOUT 2: BUKTI TANDA TERIMA EKSTERNAL -->
+        <!-- LAYOUT 2: BUKTI TANDA TERIMA EKSTERNAL (MENGIKUTI GAYA BKM) -->
         <template v-if="printMode === 'tanda_terima'">
-          <div class="w-100 p-4 mb-4 mt-3 border border-dark text-dark text-center" style="font-size: 11pt; line-height: 1.8; background-color: #f8f9fa;">
-            Telah disetujui tagihan kepada <strong class="fs-6">{{ itemToPrint.nama_pihak_lawan }}</strong> 
+          
+          <table class="w-100 mb-4 text-dark" style="font-size: 9pt;">
+            <tr>
+              <td width="15%" class="fw-bold p-1">No. Bukti</td>
+              <td width="35%" class="p-1 fw-bold pe-2" style="text-align: right;">{{ itemToPrint.no_bukti_internal }}</td>
+              <td width="15%" class="fw-bold p-1 ps-4">Tanggal</td>
+              <td width="35%" class="p-1 fw-bold pe-2" style="text-align: right;">{{ formatDateStr(itemToPrint.tanggal_tagihan) }}</td>
+            </tr>
+            <tr>
+              <td class="fw-bold p-1">Bukti Eksternal</td>
+              <td class="p-1 fw-bold pe-2" style="text-align: right;">{{ itemToPrint.nomor_tagihan || '-' }}</td>
+              <td class="fw-bold p-1 ps-4">Dibuat Oleh</td>
+              <td class="p-1 pe-2" style="text-align: right;">{{ itemToPrint.created_by }}</td>
+            </tr>
+            <tr>
+              <td class="fw-bold p-1">Jatuh Tempo</td>
+              <td class="p-1 fw-bold pe-2" style="text-align: right;">{{ formatDateStr(itemToPrint.jatuh_tempo) }}</td>
+              <td class="fw-bold p-1 ps-4">Timestamp</td>
+              <td class="p-1 pe-2" style="text-align: right;">{{ formatDateTime(itemToPrint.created_at) }}</td>
+            </tr>
+          </table>
+
+          <div class="w-100 p-4 mb-5 mt-3 border border-dark text-dark text-center" style="font-size: 11pt; line-height: 1.8; background-color: #f8f9fa;">
+            Telah disetujui tagihan dari <strong class="fs-6">{{ itemToPrint.nama_pihak_lawan }}</strong> 
             sebesar <strong class="fs-6">Rp {{ formatNominal(itemToPrint.jumlah_tagihan) }}</strong><br>
             dengan tujuan <strong>{{ itemToPrint.keterangan }}</strong><br>
             pada tanggal <strong>{{ formatDateStr(itemToPrint.tanggal_tagihan) }}</strong> 
             dan jatuh tempo pada tanggal <strong>{{ formatDateStr(itemToPrint.jatuh_tempo) }}</strong>.
           </div>
-        </template>
 
-        <!-- FOOTER TTD -->
-        <div class="mt-4">
-          <p class="fst-italic fw-bold text-center mb-2" style="font-size: 8pt;">
-            *Dokumen dinyatakan sah apabila telah di stamp (cap) dan ttd oleh pihak yang berwenang.
-          </p>
-          <div class="d-flex justify-content-end">
-            <table class="table-print table-bordered border-dark text-center" style="width: 50%; font-size: 9pt;">
-              <thead class="fw-bold bg-light">
-                <tr><th class="p-1" width="33%">Dibuat</th><th class="p-1" width="33%">Diperiksa</th><th class="p-1" width="33%">Disetujui</th></tr>
-              </thead>
-              <tbody><tr><td style="height: 60px;"></td><td></td><td></td></tr></tbody>
-            </table>
-          </div>
-        </div>
+          <!-- TANDA TANGAN (MENGIKUTI GAYA BKM) -->
+          <table class="w-100 text-center text-dark" style="font-size: 10pt;">
+            <tr>
+              <td width="40%"></td>
+              <td width="30%" class="fw-bold">Bendahara</td>
+              <td width="30%" class="fw-bold">Pihak Penagih</td>
+            </tr>
+            <tr>
+              <td style="height: 80px;"></td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td class="text-start align-bottom" style="font-size: 9pt;">
+                <div class="mb-1">
+                  <span class="fw-bold d-inline-block" style="width: 70px;">Tgl. Cetak</span> 
+                  : {{ formatDateTime(new Date().toISOString()) }}
+                </div>
+                <i style="font-size: 8pt;">*) Bukti dinyatakan sah apabila telah di cap dan di tandatangani</i>
+              </td>
+              <td class="fw-bold">{{ itemToPrint.created_by }}</td>
+              <td class="fw-bold">{{ itemToPrint.nama_pihak_lawan }}</td>
+            </tr>
+          </table>
+        </template>
 
       </div>
     </div>
@@ -270,7 +320,6 @@
                 <div class="col-md-6">
                   <label class="form-label small fw-bold text-danger">Akun Hutang (Kewajiban Utama) <span class="text-danger">*</span></label>
                   
-                  <!-- CUSTOM SEARCHABLE DROPDOWN: AKUN HUTANG UTAMA -->
                   <div class="position-relative dropdown-container" :style="{ zIndex: activeDropdown === 'main-coa' ? 1050 : 1 }">
                     <div class="form-control border-danger bg-white d-flex justify-content-between align-items-center cursor-pointer"
                          @click="toggleDropdown('main-coa')">
@@ -322,7 +371,6 @@
                 <tbody>
                   <tr v-for="(row, idx) in form.jurnal_lawan" :key="idx">
                     <td>
-                      <!-- CUSTOM SEARCHABLE DROPDOWN: KODE AKUN (COA) DINAMIS -->
                       <div class="position-relative dropdown-container" :style="{ zIndex: activeDropdown === `row-${idx}-coa` ? 1050 : 1 }">
                         <div class="form-control form-control-sm bg-white d-flex justify-content-between align-items-center cursor-pointer"
                              @click="toggleDropdown(`row-${idx}-coa`)">
@@ -347,7 +395,6 @@
                       </div>
                     </td>
                     <td>
-                      <!-- CUSTOM SEARCHABLE DROPDOWN: ANGGARAN DINAMIS -->
                       <div class="position-relative dropdown-container" :style="{ zIndex: activeDropdown === `row-${idx}-anggaran` ? 1050 : 1 }">
                         <div class="form-control form-control-sm bg-white d-flex justify-content-between align-items-center cursor-pointer"
                              @click="toggleDropdown(`row-${idx}-anggaran`)">
@@ -444,7 +491,6 @@ const isModalOpen = ref(false)
 const currentUser = ref<any>(null)
 const itemToPrint = ref<any>(null)
 
-// Menentukan mode cetak ('jurnal' atau 'tanda_terima')
 const printMode = ref<'jurnal' | 'tanda_terima'>('jurnal')
 
 const activeDropdown = ref<string | null>(null)
@@ -569,6 +615,11 @@ const formatDateStr = (dateStr: string) => {
   const d = new Date(dateStr)
   return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth()+1).padStart(2, '0')}-${d.getFullYear()}`
 }
+const formatDateTime = (dateStr: string) => {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr)
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 const formatRupiah = (angka: number) => {
   if (!angka) return 'Rp 0'
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka)
@@ -588,9 +639,25 @@ const formatInputRupiah = (val: number | string) => {
   return new Intl.NumberFormat('id-ID').format(Number(val))
 }
 
-const getCurrentPrintTime = () => {
-  const d = new Date()
-  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth()+1).padStart(2, '0')}-${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
+const generateNoBuktiTagihan = () => {
+  const now = new Date()
+  
+  const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g, '')
+  const prefix = 'TGH' 
+  
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let uniqCode = ''
+  for (let i = 0; i < 6; i++) {
+    uniqCode += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  
+  let userId = 'SYSTEM'
+  if (currentUser.value?.user_id) {
+    let rawId = String(currentUser.value.user_id).replace(/\s+/g, '').toUpperCase()
+    userId = rawId.length > 8 ? rawId.substring(0, 6) : rawId
+  }
+
+  return `${prefix}-${yyyymmdd}-${uniqCode}-${userId}`
 }
 
 const generateUUID = () => {
@@ -638,16 +705,17 @@ const fetchCompanyProfile = async () => {
 
 const fetchDropdowns = async () => {
   try {
-    // [Catatan: Biarkan query master_hutang di file Tagihan/Pembayaran tetap ada di bagian ini]
+    const { data: mhData } = await supabase
+      .from('master_hutang')
+      .select('id, nomor_perjanjian, pihak_lawan(id, nama)')
+    masterHutangs.value = mhData || []
 
-    // 1. Tarik COA (Hanya Detail DAN BUKAN akun Laba Rugi Berjalan)
     let coaQuery = supabase
       .from('coas')
       .select('*')
       .eq('sifat', 'D')
       .order('coa_code', { ascending: true })
 
-    // Mengecualikan COA Laba Rugi Berjalan jika sudah di-setting di profil perusahaan
     if (company.value?.coa_laba_rugi_berjalan) {
       coaQuery = coaQuery.neq('coa_code', company.value.coa_laba_rugi_berjalan)
     }
@@ -655,7 +723,6 @@ const fetchDropdowns = async () => {
     const { data: coaData } = await coaQuery
     listCOA.value = coaData || []
 
-    // 2. Tarik ANGGARAN (Hanya Detail)
     const { data: angData } = await supabase
       .from('anggaran')
       .select('*')
@@ -673,6 +740,7 @@ const fetchData = async () => {
     const { data, error } = await supabase.from('tagihan_hutang')
       .select(`*, master_hutang (nomor_perjanjian)`)
       .order('created_at', { ascending: false })
+      .limit(500)
     if (error) throw error
     tagihans.value = data || []
     AppAlert.close()
@@ -734,7 +802,6 @@ const printJurnal = async (item: any) => {
 const printTandaTerima = async (item: any) => {
   AppAlert.loading('Mempersiapkan Tanda Terima...')
   
-  // Mencari nama pihak lawan (vendor) dari array masterHutangs
   const mh = masterHutangs.value.find(m => m.id === item.master_hutang_id)
   const namaPihakLawan = mh?.pihak_lawan?.nama || 'Pihak Terkait'
 
@@ -771,21 +838,16 @@ const saveData = async () => {
     const currentUsername = currentUser.value?.nama || currentUser.value?.user_id || 'System'
     const now = new Date()
     
-    const newTransactionId = generateUUID()
-    const shortTxId = newTransactionId.split('-')[0].toUpperCase()
-    const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g,'')
-    const initials = currentUsername.substring(0,4).toUpperCase().replace(/[^A-Z]/g, 'X').padEnd(4, 'X')
-    const internalNoBukti = `${yyyymmdd}-${shortTxId}-${initials}TGH`
+    const internalNoBukti = generateNoBuktiTagihan()
 
     const tagihanNominal = Number(form.value.jumlah_tagihan)
     const hasAnggaran = form.value.jurnal_lawan.some((row: any) => row.pos_anggaran_id !== '')
 
-    // PERBAIKAN: MENARIK ID PIHAK LAWAN (VENDOR) DARI MASTER HUTANG
     const mh = masterHutangs.value.find(m => m.id === form.value.master_hutang_id)
-    const idPihakLawan = mh?.pihak_lawan?.id || null // <--- SEKARANG MENGAMBIL ID, BUKAN NAMA
+    const idPihakLawan = mh?.pihak_lawan?.id || null 
 
     const payloadTagihan = {
-      id: newTransactionId,
+      id: generateUUID(),
       no_bukti_internal: internalNoBukti,
       master_hutang_id: form.value.master_hutang_id,
       nomor_tagihan: form.value.nomor_tagihan,
@@ -810,7 +872,7 @@ const saveData = async () => {
       jenis_transaksi: 'HUTANG', 
       keterangan: form.value.keterangan,
       coa_saldo: form.value.coa_hutang,
-      pihak_hutang: idPihakLawan, // <--- MENYISIPKAN ID PIHAK LAWAN
+      pihak_hutang: idPihakLawan, 
       debet: 0,
       kredit: tagihanNominal,
       created_by: currentUsername,
@@ -825,7 +887,7 @@ const saveData = async () => {
         jenis_transaksi: 'HUTANG', 
         keterangan: form.value.keterangan,
         coa_saldo: row.coa_code,
-        pihak_hutang: idPihakLawan, // <--- MENYISIPKAN ID PIHAK LAWAN
+        pihak_hutang: idPihakLawan, 
         debet: row.posisi === 'D' ? Number(row.nominal) : 0,
         kredit: row.posisi === 'K' ? Number(row.nominal) : 0,
         created_by: currentUsername,
