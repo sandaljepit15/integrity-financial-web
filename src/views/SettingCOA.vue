@@ -3,17 +3,38 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h4 class="fw-bold text-dark mb-0">Daftar Akun (COA)</h4>
-        <p class="text-muted small mb-0">Manajemen Chart of Accounts</p>
+        <p class="text-muted small mb-0">Manajemen Chart of Accounts & Pengaturan Sistem</p>
       </div>
       <button class="btn btn-primary fw-bold px-4 shadow-sm" @click="openAddModal">
         <i class="bi bi-plus-lg me-2"></i> Tambah COA
       </button>
     </div>
 
+    <!-- PENGATURAN AKUN SISTEM (SYSTEM ACCOUNTS) -->
+    <div class="card border-0 shadow-sm rounded-3 p-3 mb-4 bg-primary bg-opacity-10 border-start border-primary border-4">
+      <div class="row align-items-center">
+        <div class="col-md-7">
+          <h6 class="fw-bold text-primary mb-1"><i class="bi bi-gear-fill me-2"></i>Pengaturan Akun Sistem (System Accounts)</h6>
+          <p class="small text-muted mb-0">Tentukan akun Ekuitas penampung untuk <b>Laba / Rugi Tahun Berjalan</b> di Neraca.</p>
+        </div>
+        <div class="col-md-5 d-flex gap-2">
+          <select class="form-select border-primary" v-model="companyLabaRugiCoa">
+            <option value="" disabled>-- Pilih Akun Penampung Laba Rugi --</option>
+            <!-- Hanya tampilkan COA kelompok 3 (Ekuitas) yang bersifat Detail (D) -->
+            <option v-for="coa in listCoaEkuitas" :key="coa.coa_code" :value="coa.coa_code">
+              {{ coa.coa_code }} - {{ coa.nama }}
+            </option>
+          </select>
+          <button class="btn btn-primary fw-bold px-4" @click="saveSystemAccounts">
+            <i class="bi bi-save"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- TABEL UTAMA -->
     <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
       <div class="table-responsive" style="min-height: 400px;">
-        <!-- Penambahan kelas table-striped untuk efek selang-seling ala Excel -->
         <table class="table table-striped table-hover table-bordered align-middle mb-0" style="min-width: 900px;">
           <thead class="table-dark text-center align-middle">
             <tr>
@@ -47,9 +68,8 @@
                 </span>
               </td>
               
-              <td class="text-center fw-medium">{{ item.kelompok }}</td>
+              <td class="text-center fw-medium">{{ formatKelompok(item.kelompok) }}</td>
               
-              <!-- Tombol Aksi yang dirapikan seragam dengan modul Anggaran -->
               <td class="text-center text-nowrap">
                 <button class="btn btn-sm btn-light text-primary border me-1 shadow-sm" @click="openEditModal(item)" title="Edit COA">
                   <i class="bi bi-pencil"></i>
@@ -80,12 +100,13 @@
           <div class="row g-3">
             <div class="col-12">
               <label class="form-label small fw-bold">Jenis / Kelompok Akun</label>
-              <select class="form-select" v-model="form.kelompok">
-                <option value="1 - Aset">1 - Aset</option>
-                <option value="2 - Kewajiban">2 - Kewajiban</option>
-                <option value="3 - Ekuitas">3 - Ekuitas</option>
-                <option value="4 - Pendapatan">4 - Pendapatan</option>
-                <option value="5 - Beban">5 - Beban</option>
+              <select v-model="form.kelompok" class="form-select">
+                <!-- VALUE SUDAH DIPERBAIKI HANYA MENYIMPAN ANGKA SAJA -->
+                <option value="1">1 - Aset</option>
+                <option value="2">2 - Kewajiban</option>
+                <option value="3">3 - Ekuitas</option>
+                <option value="4">4 - Pendapatan</option>
+                <option value="5">5 - Beban</option>
               </select>
             </div>
             
@@ -123,12 +144,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { supabase } from '../utils/supabase'
 import { AppAlert } from '../utils/alert'
 import Swal from 'sweetalert2'
 
 const coas = ref<any[]>([])
+const companyLabaRugiCoa = ref('') // Menyimpan settingan dari company_profile
+
 const isModalOpen = ref(false)
 const isEditMode = ref(false)
 
@@ -136,12 +159,42 @@ const form = ref({
   coa_code: '',
   nama: '',
   sifat: 'D',
-  kelompok: '1 - Aset'
+  kelompok: '1' // Default value sudah disesuaikan ke angka
 })
 
 onMounted(async () => {
+  await fetchSystemAccounts()
   await fetchCOA()
 })
+
+// Fungsi untuk menarik data dari tabel company_profile
+const fetchSystemAccounts = async () => {
+  try {
+    const { data } = await supabase.from('company_profile').select('*').eq('id', 1).single()
+    if (data) {
+      companyLabaRugiCoa.value = data.coa_laba_rugi_berjalan || ''
+    }
+  } catch (err) {
+    console.error('Gagal memuat profil', err)
+  }
+}
+
+// Fungsi untuk menyimpan pengaturan akun ke tabel company_profile
+const saveSystemAccounts = async () => {
+  if (!companyLabaRugiCoa.value) return
+  AppAlert.loading('Menyimpan Pengaturan...')
+  try {
+    const { error } = await supabase
+      .from('company_profile')
+      .update({ coa_laba_rugi_berjalan: companyLabaRugiCoa.value })
+      .eq('id', 1) 
+      
+    if (error) throw error
+    AppAlert.success('Berhasil', 'Akun Laba Rugi Berjalan berhasil diperbarui.')
+  } catch (err) {
+    AppAlert.error('Gagal', err)
+  }
+}
 
 const fetchCOA = async () => {
   AppAlert.loading('Memuat data COA...')
@@ -155,15 +208,37 @@ const fetchCOA = async () => {
   }
 }
 
+// Computed property untuk memfilter COA khusus kelompok 3 (Ekuitas) dan sifat D (Detail)
+const listCoaEkuitas = computed(() => {
+  return coas.value.filter(c => c.kelompok.toString().startsWith('3') && c.sifat === 'D')
+})
+
+// Fungsi format tampilan tabel untuk Kelompok Akun
+const formatKelompok = (kode: string) => {
+  const map: Record<string, string> = {
+    '1': '1 - Aset',
+    '2': '2 - Kewajiban',
+    '3': '3 - Ekuitas',
+    '4': '4 - Pendapatan',
+    '5': '5 - Beban'
+  }
+  // Jika di database sudah terlanjur tersimpan "1 - Aset", kembalikan aslinya. Jika "1", kembalikan hasil map.
+  return map[kode] || kode
+}
+
 const openAddModal = () => {
   isEditMode.value = false
-  form.value = { coa_code: '', nama: '', sifat: 'D', kelompok: '1 - Aset' }
+  form.value = { coa_code: '', nama: '', sifat: 'D', kelompok: '1' }
   isModalOpen.value = true
 }
 
 const openEditModal = (item: any) => {
   isEditMode.value = true
-  form.value = { ...item }
+  // Memastikan bahwa value yang di-load ke form select adalah angka depannya saja 
+  // (berjaga-jaga jika ada data lama yang tersimpan lengkap teksnya)
+  const safeKelompok = item.kelompok.toString().charAt(0) 
+  
+  form.value = { ...item, kelompok: safeKelompok }
   isModalOpen.value = true
 }
 
@@ -254,8 +329,7 @@ const deleteCOA = async (coa_code: string, nama: string) => {
   box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.15);
 }
 
-/* Modifikasi Warna Zebra Striping */
 .table-striped > tbody > tr:nth-of-type(odd) > * {
-  --bs-table-bg-type: #f8fafc; /* Warna abu-abu sangat muda/bersih */
+  --bs-table-bg-type: #f8fafc;
 }
 </style>

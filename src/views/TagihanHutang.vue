@@ -24,7 +24,7 @@
                 <th width="18%" class="py-3">Nominal Tagihan</th>
                 <th width="18%" class="py-3">Status Anggaran</th>
                 <th width="13%" class="py-3">Pembuat</th>
-                <th width="12%" class="py-3">Aksi</th>
+                <th width="15%" class="py-3">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -55,9 +55,15 @@
                 </td>
                 <td class="text-center small text-muted">{{ item.created_by }}</td>
                 <td class="text-center text-nowrap">
-                  <button class="btn btn-sm btn-light text-success border me-1 shadow-sm" @click="printJurnal(item)" title="Cetak Jurnal TAGIHAN">
+                  <!-- TOMBOL CETAK JURNAL INTERNAL -->
+                  <button class="btn btn-sm btn-light text-success border me-1 shadow-sm" @click="printJurnal(item)" title="Cetak Bukti Jurnal">
                     <i class="bi bi-printer"></i>
                   </button>
+                  <!-- TOMBOL CETAK TANDA TERIMA EKSTERNAL -->
+                  <button class="btn btn-sm btn-light text-primary border me-1 shadow-sm" @click="printTandaTerima(item)" title="Cetak Tanda Terima">
+                    <i class="bi bi-file-earmark-text"></i>
+                  </button>
+                  <!-- TOMBOL VOID -->
                   <button v-if="canDelete" class="btn btn-sm btn-light text-danger border shadow-sm" @click="deleteData(item.id, item.no_bukti_internal)" title="Void / Batalkan">
                     <i class="bi bi-x-circle"></i>
                   </button>
@@ -93,7 +99,10 @@
               </div>
             </td>
             <td width="30%" class="text-center align-middle bg-light">
-              <h4 class="mb-0 fw-bold text-dark tracking-wide" style="font-size: 14pt;">TAGIHAN</h4>
+              <!-- Judul Dinamis berdasarkan mode cetak -->
+              <h4 class="mb-0 fw-bold text-dark tracking-wide" style="font-size: 14pt;">
+                {{ printMode === 'jurnal' ? 'TAGIHAN' : 'TANDA TERIMA' }}
+              </h4>
             </td>
           </tr>
         </table>
@@ -120,52 +129,64 @@
           </tr>
         </table>
 
-        <!-- KOTAK KETERANGAN -->
-        <div class="w-100 p-2 mb-3 border border-dark text-dark" style="font-size: 9pt;">
-          <strong>Uraian Transaksi:</strong> {{ itemToPrint.keterangan }}
-        </div>
+        <!-- LAYOUT 1: BUKTI JURNAL INTERNAL -->
+        <template v-if="printMode === 'jurnal'">
+          <div class="w-100 p-2 mb-3 border border-dark text-dark" style="font-size: 9pt;">
+            <strong>Uraian Transaksi:</strong> {{ itemToPrint.keterangan }}
+          </div>
 
-        <!-- TABEL JURNAL -->
-        <table class="w-100 table-print table-bordered border-dark text-dark">
-          <thead class="text-center fw-bold bg-light">
-            <tr>
-              <th width="5%" class="p-1">No</th>
-              <th width="15%" class="p-1">Kode Akun</th>
-              <th width="40%" class="p-1">Nama Akun</th>
-              <th width="20%" class="p-1">Debet</th>
-              <th width="20%" class="p-1">Kredit</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(jurnal, idx) in itemToPrint.jurnalEntries" :key="idx">
-              <td class="text-center p-1">{{ Number(idx) + 1 }}</td>
-              <td class="text-center p-1 fw-bold">{{ jurnal.coa_saldo }}</td>
-              <td class="p-1 px-2">{{ jurnal.nama_akun }}</td>
-              <td class="p-1 px-2 text-end">
-                <div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(jurnal.debet) }}</span></div>
-              </td>
-              <td class="p-1 px-2 text-end">
-                <div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(jurnal.kredit) }}</span></div>
-              </td>
-            </tr>
-          </tbody>
-          <tfoot class="fw-bold bg-light">
-            <tr>
-              <td colspan="3" class="text-center p-1">Total Balance:</td>
-              <td class="p-1 px-2 text-end">
-                <div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(itemToPrint.totalBalanceD) }}</span></div>
-              </td>
-              <td class="p-1 px-2 text-end">
-                <div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(itemToPrint.totalBalanceK) }}</span></div>
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+          <table class="w-100 table-print table-bordered border-dark text-dark">
+            <thead class="text-center fw-bold bg-light">
+              <tr>
+                <th width="5%" class="p-1">No</th>
+                <th width="15%" class="p-1">Kode Akun</th>
+                <th width="40%" class="p-1">Nama Akun</th>
+                <th width="20%" class="p-1">Debet</th>
+                <th width="20%" class="p-1">Kredit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(jurnal, idx) in itemToPrint.jurnalEntries" :key="idx">
+                <td class="text-center p-1">{{ Number(idx) + 1 }}</td>
+                <td class="text-center p-1 fw-bold">{{ jurnal.coa_saldo }}</td>
+                <td class="p-1 px-2">{{ jurnal.nama_akun }}</td>
+                <td class="p-1 px-2 text-end">
+                  <div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(jurnal.debet) }}</span></div>
+                </td>
+                <td class="p-1 px-2 text-end">
+                  <div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(jurnal.kredit) }}</span></div>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot class="fw-bold bg-light">
+              <tr>
+                <td colspan="3" class="text-center p-1">Total Balance:</td>
+                <td class="p-1 px-2 text-end">
+                  <div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(itemToPrint.totalBalanceD) }}</span></div>
+                </td>
+                <td class="p-1 px-2 text-end">
+                  <div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(itemToPrint.totalBalanceK) }}</span></div>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </template>
+
+        <!-- LAYOUT 2: BUKTI TANDA TERIMA EKSTERNAL -->
+        <template v-if="printMode === 'tanda_terima'">
+          <div class="w-100 p-4 mb-4 mt-3 border border-dark text-dark text-center" style="font-size: 11pt; line-height: 1.8; background-color: #f8f9fa;">
+            Telah disetujui tagihan kepada <strong class="fs-6">{{ itemToPrint.nama_pihak_lawan }}</strong> 
+            sebesar <strong class="fs-6">Rp {{ formatNominal(itemToPrint.jumlah_tagihan) }}</strong><br>
+            dengan tujuan <strong>{{ itemToPrint.keterangan }}</strong><br>
+            pada tanggal <strong>{{ formatDateStr(itemToPrint.tanggal_tagihan) }}</strong> 
+            dan jatuh tempo pada tanggal <strong>{{ formatDateStr(itemToPrint.jatuh_tempo) }}</strong>.
+          </div>
+        </template>
 
         <!-- FOOTER TTD -->
-        <div class="mt-3">
+        <div class="mt-4">
           <p class="fst-italic fw-bold text-center mb-2" style="font-size: 8pt;">
-            *Bukti transaksi dinyatakan sah apabila telah di stamp (cap) dan ttd oleh petugas yang berwenang.
+            *Dokumen dinyatakan sah apabila telah di stamp (cap) dan ttd oleh pihak yang berwenang.
           </p>
           <div class="d-flex justify-content-end">
             <table class="table-print table-bordered border-dark text-center" style="width: 50%; font-size: 9pt;">
@@ -423,7 +444,9 @@ const isModalOpen = ref(false)
 const currentUser = ref<any>(null)
 const itemToPrint = ref<any>(null)
 
-// STATE CUSTOM SEARCHABLE DROPDOWN
+// Menentukan mode cetak ('jurnal' atau 'tanda_terima')
+const printMode = ref<'jurnal' | 'tanda_terima'>('jurnal')
+
 const activeDropdown = ref<string | null>(null)
 const searchQuery = ref('')
 
@@ -456,7 +479,6 @@ onUnmounted(() => {
 const canCreate = computed(() => currentUser.value?.can_create === true)
 const canDelete = computed(() => currentUser.value?.can_delete === true)
 
-// --- EVENT HANDLERS AMAN TYPE-SCRIPT ---
 const handleMainNominalInput = (e: Event) => {
   const target = e.target as HTMLInputElement | null
   if (target) {
@@ -537,7 +559,6 @@ const selectRowAnggaran = (idx: number, id: string) => {
   form.value.jurnal_lawan[idx].pos_anggaran_id = id
   closeAllDropdowns()
 }
-// ----------------------------------
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '-'
@@ -617,21 +638,41 @@ const fetchCompanyProfile = async () => {
 
 const fetchDropdowns = async () => {
   try {
-    const { data: mhData } = await supabase.from('master_hutang').select('id, nomor_perjanjian, pihak_lawan(nama)').order('created_at', { ascending: false })
-    masterHutangs.value = mhData || []
-    
-    const { data: coaData } = await supabase.from('coas').select('*').order('coa_code', { ascending: true })
+    // [Catatan: Biarkan query master_hutang di file Tagihan/Pembayaran tetap ada di bagian ini]
+
+    // 1. Tarik COA (Hanya Detail DAN BUKAN akun Laba Rugi Berjalan)
+    let coaQuery = supabase
+      .from('coas')
+      .select('*')
+      .eq('sifat', 'D')
+      .order('coa_code', { ascending: true })
+
+    // Mengecualikan COA Laba Rugi Berjalan jika sudah di-setting di profil perusahaan
+    if (company.value?.coa_laba_rugi_berjalan) {
+      coaQuery = coaQuery.neq('coa_code', company.value.coa_laba_rugi_berjalan)
+    }
+
+    const { data: coaData } = await coaQuery
     listCOA.value = coaData || []
 
-    const { data: angData } = await supabase.from('anggaran').select('*')
+    // 2. Tarik ANGGARAN (Hanya Detail)
+    const { data: angData } = await supabase
+      .from('anggaran')
+      .select('*')
+      .eq('sifat', 'D')
     listAnggaran.value = angData || []
-  } catch (err) { console.error('Gagal memuat referensi', err) }
+
+  } catch (err) { 
+    console.error('Gagal memuat referensi', err) 
+  }
 }
 
 const fetchData = async () => {
   AppAlert.loading('Memuat data...')
   try {
-    const { data, error } = await supabase.from('tagihan_hutang').select(`*, master_hutang (nomor_perjanjian)`).order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('tagihan_hutang')
+      .select(`*, master_hutang (nomor_perjanjian)`)
+      .order('created_at', { ascending: false })
     if (error) throw error
     tagihans.value = data || []
     AppAlert.close()
@@ -653,8 +694,9 @@ const closeModal = () => {
   closeAllDropdowns()
 }
 
+// FUNGSI CETAK: BUKTI JURNAL INTERNAL
 const printJurnal = async (item: any) => {
-  AppAlert.loading('Mempersiapkan dokumen cetak...')
+  AppAlert.loading('Mempersiapkan Jurnal Internal...')
   try {
     const { data: trxData, error } = await supabase
       .from('transaksi')
@@ -665,15 +707,11 @@ const printJurnal = async (item: any) => {
     if (error) throw error
     
     let totalD = 0, totalK = 0
-    
     const mappedTrx = trxData.map((t: any) => {
       totalD += Number(t.debet)
       totalK += Number(t.kredit)
       const matchedCoa = listCOA.value.find(c => c.coa_code === t.coa_saldo)
-      return {
-        ...t,
-        nama_akun: matchedCoa ? matchedCoa.nama : 'Unknown Account'
-      }
+      return { ...t, nama_akun: matchedCoa ? matchedCoa.nama : 'Unknown Account' }
     })
 
     itemToPrint.value = {
@@ -683,15 +721,32 @@ const printJurnal = async (item: any) => {
       totalBalanceK: totalK
     }
     
+    printMode.value = 'jurnal' // SET MODE KE JURNAL
     AppAlert.close()
     await nextTick() 
-    setTimeout(() => {
-      window.print()
-    }, 400)
-    
+    setTimeout(() => window.print(), 400)
   } catch (err) {
     AppAlert.error('Gagal memuat jurnal', err)
   }
+}
+
+// FUNGSI CETAK: BUKTI TANDA TERIMA EKSTERNAL
+const printTandaTerima = async (item: any) => {
+  AppAlert.loading('Mempersiapkan Tanda Terima...')
+  
+  // Mencari nama pihak lawan (vendor) dari array masterHutangs
+  const mh = masterHutangs.value.find(m => m.id === item.master_hutang_id)
+  const namaPihakLawan = mh?.pihak_lawan?.nama || 'Pihak Terkait'
+
+  itemToPrint.value = {
+    ...item,
+    nama_pihak_lawan: namaPihakLawan
+  }
+  
+  printMode.value = 'tanda_terima' // SET MODE KE TANDA TERIMA
+  AppAlert.close()
+  await nextTick()
+  setTimeout(() => window.print(), 400)
 }
 
 const saveData = async () => {
@@ -725,6 +780,10 @@ const saveData = async () => {
     const tagihanNominal = Number(form.value.jumlah_tagihan)
     const hasAnggaran = form.value.jurnal_lawan.some((row: any) => row.pos_anggaran_id !== '')
 
+    // PERBAIKAN: MENARIK ID PIHAK LAWAN (VENDOR) DARI MASTER HUTANG
+    const mh = masterHutangs.value.find(m => m.id === form.value.master_hutang_id)
+    const idPihakLawan = mh?.pihak_lawan?.id || null // <--- SEKARANG MENGAMBIL ID, BUKAN NAMA
+
     const payloadTagihan = {
       id: newTransactionId,
       no_bukti_internal: internalNoBukti,
@@ -751,6 +810,7 @@ const saveData = async () => {
       jenis_transaksi: 'HUTANG', 
       keterangan: form.value.keterangan,
       coa_saldo: form.value.coa_hutang,
+      pihak_hutang: idPihakLawan, // <--- MENYISIPKAN ID PIHAK LAWAN
       debet: 0,
       kredit: tagihanNominal,
       created_by: currentUsername,
@@ -765,6 +825,7 @@ const saveData = async () => {
         jenis_transaksi: 'HUTANG', 
         keterangan: form.value.keterangan,
         coa_saldo: row.coa_code,
+        pihak_hutang: idPihakLawan, // <--- MENYISIPKAN ID PIHAK LAWAN
         debet: row.posisi === 'D' ? Number(row.nominal) : 0,
         kredit: row.posisi === 'K' ? Number(row.nominal) : 0,
         created_by: currentUsername,
@@ -809,13 +870,11 @@ const deleteData = async (id: string, no_internal: string) => {
 </script>
 
 <style scoped>
-/* CSS UNTUK DROPDOWN CUSTOM */
 .cursor-pointer { cursor: pointer; }
 .dropdown-container { z-index: 1056; }
 .custom-dropdown-menu { max-height: 250px; overflow-y: auto; z-index: 1060; }
 .table-visible-overflow { overflow: visible !important; }
 
-/* CSS LAYOUT MODAL */
 .custom-modal-overlay { 
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
   background-color: rgba(15, 23, 42, 0.6); display: flex; 
@@ -830,7 +889,6 @@ const deleteData = async (id: string, no_internal: string) => {
 #print-area { display: none; }
 </style>
 
-<!-- CSS Global Khusus Print -->
 <style>
 @media print {
   .screen-only, .sidebar, .topbar, .d-print-none, aside, nav, header {
