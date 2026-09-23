@@ -3,7 +3,7 @@
     
     <!-- AREA KONTROL -->
     <div class="d-print-none card border border-secondary shadow-sm rounded-0 p-4 mb-4">
-      <h4 class="fw-bold text-dark mb-4">Laporan Keuangan Lengkap</h4>
+      <h4 class="fw-bold text-dark mb-4">Laporan Keuangan</h4>
       
       <div class="row g-3 align-items-end">
         <div class="col-md-3">
@@ -410,7 +410,7 @@ const exportToExcel = () => {
   const wb = XLSX.utils.book_new()
   const wsData: any[][] = []
 
-  wsData.push(["LAPORAN KEUANGAN LENGKAP"])
+  wsData.push(["LAPORAN KEUANGAN"])
   wsData.push(["Periode:", `${formatDate(filters.startDate)} s/d ${formatDate(filters.endDate)}`])
   wsData.push([])
 
