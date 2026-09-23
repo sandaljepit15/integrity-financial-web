@@ -2,66 +2,66 @@
   <div class="laporan-posisi">
     
     <!-- AREA KONTROL -->
-    <div class="d-print-none card border-0 shadow-sm rounded-3 p-4 mb-4">
+    <div class="d-print-none card border border-secondary shadow-sm rounded-0 p-4 mb-4">
       <h4 class="fw-bold text-dark mb-4">Laporan Keuangan Lengkap</h4>
       
       <div class="row g-3 align-items-end">
         <div class="col-md-3">
           <label class="form-label small fw-bold">Dari Tanggal</label>
-          <input type="date" class="form-control" v-model="filters.startDate" />
+          <input type="date" class="form-control rounded-0" v-model="filters.startDate" />
         </div>
         <div class="col-md-3">
           <label class="form-label small fw-bold">Sampai Tanggal</label>
-          <input type="date" class="form-control" v-model="filters.endDate" />
+          <input type="date" class="form-control rounded-0" v-model="filters.endDate" />
         </div>
         <div class="col-md-6 d-flex gap-2">
-          <button class="btn btn-primary fw-bold px-4" @click="generateReport">
+          <button class="btn btn-primary fw-bold px-4 rounded-0" @click="generateReport">
             <i class="bi bi-search me-1"></i> Tampilkan
           </button>
-          <button class="btn btn-success fw-bold px-3" @click="exportToExcel" :disabled="reportGroups.length === 0">
+          <button class="btn btn-success fw-bold px-3 rounded-0" @click="exportToExcel" :disabled="reportGroups.length === 0">
             <i class="bi bi-file-earmark-excel me-1"></i> Excel
           </button>
-          <button class="btn btn-danger fw-bold px-3" @click="printPDF" :disabled="reportGroups.length === 0">
+          <button class="btn btn-danger fw-bold px-3 rounded-0" @click="printPDF" :disabled="reportGroups.length === 0">
             <i class="bi bi-printer me-1"></i> Cetak / PDF
           </button>
         </div>
       </div>
     </div>
 
-    <!-- KARTU RINGKASAN DI ATAS (UI ONLY) - DIPERBAIKI UKURAN FONTNYA -->
+    <!-- KARTU RINGKASAN DI ATAS (UI ONLY) -->
     <div class="row g-2 mb-4 d-print-none" v-if="reportGroups.length > 0">
       <div class="col-md-4 col-lg-2">
-        <div class="card border-0 shadow-sm bg-primary text-white h-100 p-2 rounded-3">
+        <div class="card border-0 shadow-sm bg-primary text-white h-100 p-2 rounded-0">
           <div class="fw-bold opacity-75 mb-1 text-truncate" style="font-size: 0.65rem;" title="TOTAL ASET">TOTAL ASET</div>
           <div class="fw-bold mb-0 text-truncate" style="font-size: 0.95rem;" :title="'Rp ' + formatNominal(summary.aset)">Rp {{ formatNominal(summary.aset) }}</div>
         </div>
       </div>
       <div class="col-md-4 col-lg-2">
-        <div class="card border-0 shadow-sm bg-danger text-white h-100 p-2 rounded-3">
+        <div class="card border-0 shadow-sm bg-danger text-white h-100 p-2 rounded-0">
           <div class="fw-bold opacity-75 mb-1 text-truncate" style="font-size: 0.65rem;" title="LIABILITAS">LIABILITAS</div>
           <div class="fw-bold mb-0 text-truncate" style="font-size: 0.95rem;" :title="'Rp ' + formatNominal(summary.liabilitas)">Rp {{ formatNominal(summary.liabilitas) }}</div>
         </div>
       </div>
       <div class="col-md-4 col-lg-2">
-        <div class="card border-0 shadow-sm bg-warning text-dark h-100 p-2 rounded-3">
+        <div class="card border-0 shadow-sm bg-warning text-dark h-100 p-2 rounded-0">
           <div class="fw-bold opacity-75 mb-1 text-truncate" style="font-size: 0.65rem;" title="EKUITAS">EKUITAS</div>
           <div class="fw-bold mb-0 text-truncate" style="font-size: 0.95rem;" :title="'Rp ' + formatNominal(summary.ekuitas)">Rp {{ formatNominal(summary.ekuitas) }}</div>
         </div>
       </div>
       <div class="col-md-4 col-lg-2">
-        <div class="card border-0 shadow-sm bg-success text-white h-100 p-2 rounded-3">
+        <div class="card border-0 shadow-sm bg-success text-white h-100 p-2 rounded-0">
           <div class="fw-bold opacity-75 mb-1 text-truncate" style="font-size: 0.65rem;" title="PENDAPATAN">PENDAPATAN</div>
           <div class="fw-bold mb-0 text-truncate" style="font-size: 0.95rem;" :title="'Rp ' + formatNominal(summary.pendapatan)">Rp {{ formatNominal(summary.pendapatan) }}</div>
         </div>
       </div>
       <div class="col-md-4 col-lg-2">
-        <div class="card border-0 shadow-sm bg-secondary text-white h-100 p-2 rounded-3">
+        <div class="card border-0 shadow-sm bg-secondary text-white h-100 p-2 rounded-0">
           <div class="fw-bold opacity-75 mb-1 text-truncate" style="font-size: 0.65rem;" title="BIAYA / BEBAN">BIAYA / BEBAN</div>
           <div class="fw-bold mb-0 text-truncate" style="font-size: 0.95rem;" :title="'Rp ' + formatNominal(summary.biaya)">Rp {{ formatNominal(summary.biaya) }}</div>
         </div>
       </div>
       <div class="col-md-4 col-lg-2">
-        <div class="card border-0 shadow-sm h-100 p-2 rounded-3" :class="summary.laba >= 0 ? 'bg-info text-dark' : 'bg-dark text-white'">
+        <div class="card border-0 shadow-sm h-100 p-2 rounded-0" :class="summary.laba >= 0 ? 'bg-info text-dark' : 'bg-dark text-white'">
           <div class="fw-bold opacity-75 mb-1 text-truncate" style="font-size: 0.65rem;" title="LABA / (RUGI)">LABA / (RUGI)</div>
           <div class="fw-bold mb-0 text-truncate" style="font-size: 0.95rem;" :title="'Rp ' + formatNominal(summary.laba)">Rp {{ formatNominal(summary.laba) }}</div>
         </div>
@@ -101,22 +101,21 @@
 
       <!-- ITERASI PER KELOMPOK AKUN -->
       <div v-for="group in reportGroups" :key="group.id" class="mb-4">
-        <!-- Header Grup Tanpa Background Gelap -->
         <h5 class="fw-bold text-dark mb-2 text-muted"><i class="bi bi-folder2-open me-2"></i> {{ group.title }}</h5>
         
         <div class="table-responsive">
-          <table class="table table-striped custom-striped table-bordered table-hover mb-0 align-middle table-print">
+          <table class="table table-sm table-striped custom-striped table-bordered table-hover mb-0 align-middle table-print" style="font-size: 0.85rem;">
             <thead class="text-center align-middle bg-light fw-bold d-print-light">
               <tr>
-                <th rowspan="2" width="12%">Kode COA</th>
-                <th rowspan="2" width="28%">Nama Akun</th>
-                <th rowspan="2" width="15%">Saldo Awal</th>
-                <th colspan="2" width="30%">Mutasi Periode Ini</th>
-                <th rowspan="2" width="15%">Saldo Akhir</th>
+                <th rowspan="2" width="12%" class="py-2">Kode COA</th>
+                <th rowspan="2" width="28%" class="py-2">Nama Akun</th>
+                <th rowspan="2" width="15%" class="py-2">Saldo Awal</th>
+                <th colspan="2" width="30%" class="py-2">Mutasi Periode Ini</th>
+                <th rowspan="2" width="15%" class="py-2">Saldo Akhir</th>
               </tr>
               <tr>
-                <th>Debet</th>
-                <th>Kredit</th>
+                <th class="py-2">Debet</th>
+                <th class="py-2">Kredit</th>
               </tr>
             </thead>
             <tbody>
@@ -486,7 +485,6 @@ const printPDF = () => {
     print-color-adjust: exact !important;
   }
 
-  /* KUNCI: Override total untuk baris gelap agar teksnya jadi putih */
   .table-print tr.print-bg-dark th, 
   .table-print tr.print-bg-dark td,
   .print-bg-dark th,

@@ -7,70 +7,107 @@
           <h4 class="fw-bold text-dark mb-0">Kas & Jurnal Umum</h4>
           <p class="text-muted small mb-0">Pencatatan memorial, penerimaan kas, dan pengeluaran kas non-tagihan.</p>
         </div>
-        <button v-if="canCreate" class="btn btn-primary fw-bold px-4 shadow-sm" @click="openAddModal">
+        <button v-if="canCreate" class="btn btn-primary fw-bold px-4 shadow-sm rounded-0" @click="openAddModal">
           <i class="bi bi-journal-plus me-2"></i> Buat Transaksi
         </button>
       </div>
 
-      <!-- TABEL DATA TRANSAKSI UMUM -->
-      <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
-        <div class="table-responsive" style="min-height: 400px;">
-          <table class="table table-striped table-hover table-bordered align-middle mb-0" style="min-width: 1200px;">
+      <!-- FITUR PENCARIAN -->
+      <div class="d-flex mb-3 gap-2 align-items-center">
+        <select class="form-select form-select-sm w-auto rounded-0 border-secondary" v-model="searchColumn">
+          <option value="semua">Semua Kategori</option>
+          <option value="kwitansi_internal">No. Bukti</option>
+          <option value="keterangan">Keterangan</option>
+          <option value="pihak_terkait">Pihak Terkait</option>
+          <option value="no_reff_transfer">No. Referensi / Trf</option>
+          <option value="jenis_transaksi">Jenis Transaksi</option>
+        </select>
+        <div class="input-group input-group-sm w-25">
+          <span class="input-group-text rounded-0 bg-white border-secondary"><i class="bi bi-search"></i></span>
+          <input type="text" class="form-control rounded-0 border-start-0 border-secondary ps-0" v-model="searchTableQuery" placeholder="Cari data...">
+        </div>
+      </div>
+
+      <!-- TABEL DATA TRANSAKSI UMUM (GRID KOTAK & FONT KECIL) -->
+      <div class="card border border-secondary shadow-sm rounded-0 overflow-hidden">
+        <div class="table-responsive" style="min-height: 440px;">
+          <table class="table table-sm table-striped table-hover table-bordered align-middle mb-0" style="min-width: 1200px; font-size: 0.85rem;">
             <thead class="table-dark text-center align-middle">
               <tr>
                 <th width="4%" class="py-3">No</th>
-                <th width="12%" class="py-3">Jenis</th>
-                <th width="18%" class="py-3">No. Bukti & Tgl</th>
-                <th width="25%" class="py-3">Keterangan & Pihak Terkait</th>
-                <th width="16%" class="py-3">Total Transaksi</th>
-                <th width="13%" class="py-3">Pembuat</th>
+                <th width="12%" class="py-3 cursor-pointer" @click="handleSort('jenis_transaksi')">
+                  Jenis <i class="bi ms-1" :class="sortColumn==='jenis_transaksi' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
+                </th>
+                <th width="18%" class="py-3 cursor-pointer" @click="handleSort('kwitansi_internal')">
+                  No. Bukti & Tgl <i class="bi ms-1" :class="sortColumn==='kwitansi_internal' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
+                </th>
+                <th width="25%" class="py-3 cursor-pointer" @click="handleSort('keterangan')">
+                  Keterangan & Pihak Terkait <i class="bi ms-1" :class="sortColumn==='keterangan' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
+                </th>
+                <th width="16%" class="py-3 cursor-pointer" @click="handleSort('total_nominal')">
+                  Total Transaksi <i class="bi ms-1" :class="sortColumn==='total_nominal' ? (sortDirection==='asc' ? 'bi-sort-numeric-down' : 'bi-sort-numeric-up') : 'bi-arrow-down-up opacity-25'"></i>
+                </th>
+                <th width="13%" class="py-3 cursor-pointer" @click="handleSort('created_by')">
+                  Pembuat <i class="bi ms-1" :class="sortColumn==='created_by' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
+                </th>
                 <th width="12%" class="py-3">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-if="transactions.length === 0">
+              <tr v-if="paginatedData.length === 0">
                 <td colspan="7" class="text-center text-muted py-5">
-                  <i class="bi bi-journals fs-2 d-block mb-2"></i> Belum ada data transaksi.
+                  <i class="bi bi-journals fs-2 d-block mb-2"></i> Data tidak ditemukan.
                 </td>
               </tr>
               
-              <tr v-for="(item, index) in transactions" :key="item.kwitansi_internal">
-                <td class="text-center text-muted">{{ index + 1 }}</td>
+              <tr v-for="(item, index) in paginatedData" :key="item.kwitansi_internal">
+                <td class="text-center text-muted">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
                 <td class="text-center">
-                  <span class="badge w-100 py-2" :class="getBadgeClass(item.jenis_transaksi)">
+                  <span class="badge w-100 py-2 rounded-0" :class="getBadgeClass(item.jenis_transaksi)">
                     {{ formatJenis(item.jenis_transaksi) }}
                   </span>
                 </td>
                 <td class="text-center">
                   <div class="fw-bold text-dark">{{ item.kwitansi_internal }}</div>
-                  <div class="small text-muted mt-1">{{ formatDate(item.tanggal_transaksi) }}</div>
+                  <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ formatDate(item.tanggal_transaksi) }}</div>
                 </td>
                 <td>
                   <div class="fw-bold text-dark">{{ item.keterangan || '-' }}</div>
-                  <div v-if="item.jenis_transaksi !== 'JURNAL_UMUM'" class="small text-muted mt-1">
+                  <div v-if="item.jenis_transaksi !== 'JURNAL_UMUM'" class="text-muted mt-1" style="font-size: 0.75rem;">
                     <i class="bi bi-person-fill me-1"></i> {{ item.pihak_terkait || '-' }}
-                    <span v-if="item.metode_pembayaran" class="badge bg-secondary ms-1" style="font-size: 0.65rem;">{{ item.metode_pembayaran }}</span>
+                    <span v-if="item.metode_pembayaran" class="badge bg-secondary ms-1 rounded-0" style="font-size: 0.65rem;">{{ item.metode_pembayaran }}</span>
+                    <span v-if="item.no_reff_transfer" class="ms-1 fst-italic">[{{ item.no_reff_transfer }}]</span>
                   </div>
                 </td>
                 <td class="text-end fw-bold text-primary">{{ formatRupiah(item.total_nominal) }}</td>
-                <td class="text-center small text-muted">{{ item.created_by }}</td>
+                <td class="text-center text-muted">{{ item.created_by }}</td>
                 <td class="text-center text-nowrap">
-                  <!-- BUKTI JURNAL (Untuk Semua Jenis) -->
-                  <button class="btn btn-sm btn-light text-success border me-1 shadow-sm" @click="printJurnal(item.kwitansi_internal)" title="Cetak Bukti Jurnal">
+                  <button class="btn btn-sm btn-light text-success border me-1 rounded-0 shadow-sm" @click="printJurnal(item.kwitansi_internal)" title="Cetak Bukti Jurnal">
                     <i class="bi bi-printer"></i>
                   </button>
-                  <!-- TANDA TERIMA / KUITANSI (Hanya Kas Masuk / Keluar) -->
-                  <button v-if="item.jenis_transaksi !== 'JURNAL_UMUM'" class="btn btn-sm btn-light text-primary border me-1 shadow-sm" @click="printKuitansi(item.kwitansi_internal)" title="Cetak Kuitansi Eksternal">
+                  <button v-if="item.jenis_transaksi !== 'JURNAL_UMUM'" class="btn btn-sm btn-light text-primary border me-1 rounded-0 shadow-sm" @click="printKuitansi(item.kwitansi_internal)" title="Cetak Kuitansi Eksternal">
                     <i class="bi bi-file-earmark-text"></i>
                   </button>
-                  <!-- VOID -->
-                  <button v-if="canDelete" class="btn btn-sm btn-light text-danger border shadow-sm" @click="deleteData(item.kwitansi_internal)" title="Void / Batalkan">
+                  <button v-if="canDelete" class="btn btn-sm btn-light text-danger border rounded-0 shadow-sm" @click="deleteData(item.kwitansi_internal)" title="Void / Batalkan">
                     <i class="bi bi-x-circle"></i>
                   </button>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- PAGINATION CONTROLS -->
+        <div class="d-flex justify-content-between align-items-center p-3 bg-light border-top">
+          <div class="text-muted fw-bold" style="font-size: 0.85rem;">
+            Tampil {{ sortedData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1 }} -
+            {{ Math.min(currentPage * itemsPerPage, sortedData.length) }} dari {{ sortedData.length }} data
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-sm btn-outline-secondary rounded-0 fw-bold" :disabled="currentPage === 1" @click="currentPage--"><i class="bi bi-chevron-left me-1"></i> Prev</button>
+            <button class="btn btn-sm btn-outline-secondary rounded-0 fw-bold" disabled>Hal {{ currentPage }} / {{ totalPages || 1 }}</button>
+            <button class="btn btn-sm btn-outline-secondary rounded-0 fw-bold" :disabled="currentPage === totalPages || totalPages === 0" @click="currentPage++">Next <i class="bi bi-chevron-right ms-1"></i></button>
+          </div>
         </div>
       </div>
     </div>
@@ -278,21 +315,21 @@
     <div v-if="isModalOpen" class="custom-modal-overlay screen-only">
       <div v-if="activeDropdown" class="position-fixed top-0 start-0 w-100 h-100 overlay-dropdown" @click="closeAllDropdowns"></div>
 
-      <div class="custom-modal-card card border-0 shadow-lg rounded-4 overflow-hidden" style="max-width: 1000px; width: 95%; z-index: 1050;">
+      <div class="custom-modal-card card border-0 shadow-lg rounded-0 overflow-hidden" style="max-width: 1000px; width: 95%; z-index: 1050;">
         <div class="card-header bg-white border-bottom p-0 d-flex justify-content-between align-items-center flex-shrink-0">
           <ul class="nav nav-tabs border-0 mt-3 ms-3" role="tablist">
             <li class="nav-item" role="presentation">
-              <button class="nav-link fw-bold px-4" :class="{ 'active text-primary border-bottom-0': form.type === 'KAS_MASUK' }" @click="changeFormType('KAS_MASUK')">
+              <button class="nav-link fw-bold px-4 rounded-0" :class="{ 'active text-primary border-bottom-0': form.type === 'KAS_MASUK' }" @click="changeFormType('KAS_MASUK')">
                 <i class="bi bi-box-arrow-in-right me-1"></i> Kas Masuk (BKM)
               </button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link fw-bold px-4" :class="{ 'active text-danger border-bottom-0': form.type === 'KAS_KELUAR' }" @click="changeFormType('KAS_KELUAR')">
+              <button class="nav-link fw-bold px-4 rounded-0" :class="{ 'active text-danger border-bottom-0': form.type === 'KAS_KELUAR' }" @click="changeFormType('KAS_KELUAR')">
                 <i class="bi bi-box-arrow-right me-1"></i> Kas Keluar (BKK)
               </button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link fw-bold px-4" :class="{ 'active text-dark border-bottom-0': form.type === 'JURNAL_UMUM' }" @click="changeFormType('JURNAL_UMUM')">
+              <button class="nav-link fw-bold px-4 rounded-0" :class="{ 'active text-dark border-bottom-0': form.type === 'JURNAL_UMUM' }" @click="changeFormType('JURNAL_UMUM')">
                 <i class="bi bi-journal-text me-1"></i> Jurnal Umum (JUI)
               </button>
             </li>
@@ -302,20 +339,20 @@
 
         <div class="card-body p-4 modal-body-scroll custom-scrollbar bg-light bg-opacity-50">
           
-          <div class="bg-white p-3 rounded border shadow-sm mb-4">
+          <div class="bg-white p-3 rounded-0 border shadow-sm mb-4">
             <h6 class="fw-bold mb-3 border-bottom pb-2">Data Header Transaksi</h6>
             <div class="row g-3">
               <div class="col-md-4">
                 <label class="form-label small fw-bold">Nomor Bukti Internal <span class="text-danger">*</span></label>
-                <input type="text" class="form-control fw-bold" v-model="form.no_bukti" readonly>
+                <input type="text" class="form-control fw-bold rounded-0" v-model="form.no_bukti" readonly>
               </div>
               <div class="col-md-4">
                 <label class="form-label small fw-bold">Nomor Eksternal / Referensi</label>
-                <input type="text" class="form-control" v-model="form.kwitansi_eksternal" placeholder="Opsional...">
+                <input type="text" class="form-control rounded-0" v-model="form.kwitansi_eksternal" placeholder="Opsional...">
               </div>
               <div class="col-md-4">
                 <label class="form-label small fw-bold">Tanggal Transaksi <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" v-model="form.tanggal">
+                <input type="date" class="form-control rounded-0" v-model="form.tanggal">
               </div>
               
               <!-- Pihak Terkait HANYA TAMPIL untuk Kas -->
@@ -323,13 +360,13 @@
                 <label class="form-label small fw-bold">
                   {{ form.type === 'KAS_MASUK' ? 'Diterima Dari' : 'Dibayarkan Kepada' }} <span class="text-danger">*</span>
                 </label>
-                <input type="text" class="form-control" v-model="form.pihak_terkait" placeholder="Ketik nama pihak/orang...">
+                <input type="text" class="form-control rounded-0" v-model="form.pihak_terkait" placeholder="Ketik nama pihak/orang...">
               </div>
 
               <!-- Metode Pembayaran & Reff Transfer HANYA TAMPIL untuk Kas -->
               <div class="col-md-3" v-if="form.type !== 'JURNAL_UMUM'">
                 <label class="form-label small fw-bold">Metode Pembayaran <span class="text-danger">*</span></label>
-                <select class="form-select" v-model="form.metode_pembayaran">
+                <select class="form-select rounded-0" v-model="form.metode_pembayaran">
                   <option value="Transfer Bank">Transfer Bank</option>
                   <option value="Tunai (Cash)">Tunai (Cash)</option>
                   <option value="QRIS / E-Wallet">QRIS / E-Wallet</option>
@@ -339,18 +376,18 @@
 
               <div class="col-md-4" v-if="form.type !== 'JURNAL_UMUM'">
                 <label class="form-label small fw-bold">No. Reff Transfer Bank</label>
-                <input type="text" class="form-control" v-model="form.no_reff_transfer" placeholder="Opsional (Bukti TF)..." :disabled="form.metode_pembayaran === 'Tunai (Cash)'">
+                <input type="text" class="form-control rounded-0" v-model="form.no_reff_transfer" placeholder="Opsional (Bukti TF)..." :disabled="form.metode_pembayaran === 'Tunai (Cash)'">
               </div>
 
               <div class="col-12">
                 <label class="form-label small fw-bold">Uraian / Keterangan Umum <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" v-model="form.keterangan" placeholder="Keterangan transaksi secara keseluruhan...">
+                <input type="text" class="form-control rounded-0" v-model="form.keterangan" placeholder="Keterangan transaksi secara keseluruhan...">
               </div>
             </div>
           </div>
 
           <!-- KELOMPOK AKUN KAS UTAMA (HANYA UNTUK KAS) -->
-          <div class="bg-white p-3 rounded border shadow-sm mb-4 position-relative" style="z-index: 20;" v-if="form.type !== 'JURNAL_UMUM'">
+          <div class="bg-white p-3 rounded-0 border shadow-sm mb-4 position-relative" style="z-index: 20;" v-if="form.type !== 'JURNAL_UMUM'">
             <div class="row align-items-end">
               <div class="col-md-6">
                 <label class="form-label small fw-bold" :class="form.type === 'KAS_MASUK' ? 'text-primary' : 'text-danger'">
@@ -358,14 +395,14 @@
                 </label>
                 
                 <div class="position-relative dropdown-container">
-                  <div class="form-control bg-white d-flex justify-content-between align-items-center cursor-pointer"
+                  <div class="form-control bg-white d-flex justify-content-between align-items-center cursor-pointer rounded-0"
                        :class="form.type === 'KAS_MASUK' ? 'border-primary' : 'border-danger'"
                        @click="toggleDropdown('main-coa')">
                     <span class="text-truncate" :class="{'text-muted': !form.coa_kas}">{{ getCoaLabel(form.coa_kas) }}</span>
                     <i class="bi bi-search small"></i>
                   </div>
-                  <div v-if="activeDropdown === 'main-coa'" class="position-absolute w-100 bg-white border rounded shadow mt-1 p-2 custom-dropdown-menu">
-                    <input type="text" class="form-control mb-2 sticky-top" placeholder="Cari Kode / Nama Akun..." v-model="searchQuery" @click.stop>
+                  <div v-if="activeDropdown === 'main-coa'" class="position-absolute w-100 bg-white border rounded-0 shadow mt-1 p-2 custom-dropdown-menu">
+                    <input type="text" class="form-control mb-2 sticky-top rounded-0" placeholder="Cari Kode / Nama Akun..." v-model="searchQuery" @click.stop>
                     <div class="list-group list-group-flush">
                       <button v-for="coa in filteredCOA" :key="coa.id" class="list-group-item list-group-item-action p-2 small border-bottom" @click="selectMainCoa(coa.coa_code)">
                         <span class="fw-bold">{{ coa.coa_code }}</span> - {{ coa.nama }}
@@ -384,21 +421,21 @@
           </div>
 
           <!-- TABEL JURNAL RINCIAN / LAWAN -->
-          <div class="bg-white p-3 rounded border shadow-sm">
+          <div class="bg-white p-3 rounded-0 border shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
               <h6 class="fw-bold mb-0">
                 <i class="bi bi-calculator me-2"></i>
                 {{ form.type === 'JURNAL_UMUM' ? 'Rincian Jurnal (Multi-Baris)' : 'Rincian Akun Lawan' }}
               </h6>
-              <span class="badge" :class="isBalanced ? 'bg-success' : 'bg-danger'" v-if="form.type === 'JURNAL_UMUM'">
+              <span class="badge rounded-0" :class="isBalanced ? 'bg-success' : 'bg-danger'" v-if="form.type === 'JURNAL_UMUM'">
                 {{ isBalanced ? 'BALANCE' : 'TIDAK BALANCE' }}
               </span>
-              <button class="btn btn-sm btn-outline-primary fw-bold" @click="addJurnalRow">
+              <button class="btn btn-sm btn-outline-primary fw-bold rounded-0" @click="addJurnalRow">
                 <i class="bi bi-plus-circle me-1"></i> Tambah Baris
               </button>
             </div>
             
-            <div class="table-responsive border rounded mb-3 table-visible-overflow position-relative" style="z-index: 10;">
+            <div class="table-responsive border rounded-0 mb-3 table-visible-overflow position-relative" style="z-index: 10;">
               <table class="table table-sm table-bordered align-middle mb-0">
                 <thead class="bg-light text-center small">
                   <tr>
@@ -413,15 +450,15 @@
                   <tr v-for="(row, idx) in form.rincian" :key="idx">
                     <td>
                       <div class="position-relative dropdown-container" :style="{ zIndex: activeDropdown === `row-${idx}-coa` ? 1050 : 1 }">
-                        <div class="form-control form-control-sm bg-white d-flex justify-content-between align-items-center cursor-pointer"
+                        <div class="form-control form-control-sm bg-white d-flex justify-content-between align-items-center cursor-pointer rounded-0"
                              @click="toggleDropdown(`row-${idx}-coa`)">
                           <span class="text-truncate d-inline-block" style="max-width: 180px;" :class="{'text-muted': !row.coa_code}">
                             {{ getCoaLabel(row.coa_code) }}
                           </span>
                           <i class="bi bi-search small text-muted"></i>
                         </div>
-                        <div v-if="activeDropdown === `row-${idx}-coa`" class="position-absolute bg-white border rounded shadow mt-1 p-2 custom-dropdown-menu" style="min-width: 300px;">
-                          <input type="text" class="form-control form-control-sm mb-2 sticky-top" placeholder="Cari COA..." v-model="searchQuery" @click.stop>
+                        <div v-if="activeDropdown === `row-${idx}-coa`" class="position-absolute bg-white border rounded-0 shadow mt-1 p-2 custom-dropdown-menu" style="min-width: 300px;">
+                          <input type="text" class="form-control form-control-sm mb-2 sticky-top rounded-0" placeholder="Cari COA..." v-model="searchQuery" @click.stop>
                           <div class="list-group list-group-flush">
                             <button v-for="coa in filteredCOA" :key="coa.id" class="list-group-item list-group-item-action p-2 small border-bottom" @click="selectRowCoa(Number(idx), coa.coa_code)">
                               <span class="fw-bold">{{ coa.coa_code }}</span> <br> <span class="text-dark">{{ coa.nama }}</span>
@@ -432,15 +469,15 @@
                     </td>
                     <td>
                       <div class="position-relative dropdown-container" :style="{ zIndex: activeDropdown === `row-${idx}-anggaran` ? 1050 : 1 }">
-                        <div class="form-control form-control-sm bg-white d-flex justify-content-between align-items-center cursor-pointer"
+                        <div class="form-control form-control-sm bg-white d-flex justify-content-between align-items-center cursor-pointer rounded-0"
                              @click="toggleDropdown(`row-${idx}-anggaran`)">
                           <span class="text-truncate d-inline-block" style="max-width: 150px;" :class="{'text-muted': !row.pos_anggaran_id}">
                             {{ getAnggaranLabel(row.pos_anggaran_id) }}
                           </span>
                           <i class="bi bi-search small text-muted"></i>
                         </div>
-                        <div v-if="activeDropdown === `row-${idx}-anggaran`" class="position-absolute bg-white border rounded shadow mt-1 p-2 custom-dropdown-menu" style="min-width: 280px;">
-                          <input type="text" class="form-control form-control-sm mb-2 sticky-top" placeholder="Cari Pos..." v-model="searchQuery" @click.stop>
+                        <div v-if="activeDropdown === `row-${idx}-anggaran`" class="position-absolute bg-white border rounded-0 shadow mt-1 p-2 custom-dropdown-menu" style="min-width: 280px;">
+                          <input type="text" class="form-control form-control-sm mb-2 sticky-top rounded-0" placeholder="Cari Pos..." v-model="searchQuery" @click.stop>
                           <div class="list-group list-group-flush">
                             <button class="list-group-item list-group-item-action p-2 small border-bottom text-muted fst-italic" @click="selectRowAnggaran(Number(idx), '')">
                               -- Tanpa Anggaran --
@@ -453,7 +490,7 @@
                       </div>
                     </td>
                     <td>
-                      <select class="form-select form-select-sm" v-model="row.posisi" 
+                      <select class="form-select form-select-sm rounded-0" v-model="row.posisi" 
                               :disabled="form.type !== 'JURNAL_UMUM'"
                               :class="row.posisi === 'D' ? 'text-primary fw-bold' : 'text-danger fw-bold'">
                         <option value="D">DEBET</option>
@@ -461,13 +498,13 @@
                       </select>
                     </td>
                     <td>
-                      <input type="text" class="form-control form-control-sm text-end fw-bold" 
+                      <input type="text" class="form-control form-control-sm text-end fw-bold rounded-0" 
                              :value="formatInputRupiah(row.nominal)" 
                              @input="(e) => handleRowNominalInput(Number(idx), e)" 
                              placeholder="0">
                     </td>
                     <td class="text-center">
-                      <button class="btn btn-sm btn-light text-danger" @click="removeJurnalRow(Number(idx))" :disabled="form.rincian.length === 1">
+                      <button class="btn btn-sm btn-light text-danger rounded-0" @click="removeJurnalRow(Number(idx))" :disabled="form.rincian.length === 1">
                         <i class="bi bi-trash"></i>
                       </button>
                     </td>
@@ -477,7 +514,7 @@
             </div>
 
             <!-- RINGKASAN BALANCE (HANYA MUNCUL DI JURNAL UMUM) -->
-            <div v-if="form.type === 'JURNAL_UMUM'" class="row text-center fw-bold bg-light rounded p-2 border mx-0 mt-3">
+            <div v-if="form.type === 'JURNAL_UMUM'" class="row text-center fw-bold bg-light rounded-0 p-2 border mx-0 mt-3">
               <div class="col-4 border-end">
                 <div class="small text-muted">Total Debet</div>
                 <div class="text-primary fs-6">Rp {{ formatNominal(totalDebet) }}</div>
@@ -498,8 +535,8 @@
         </div>
         
         <div class="card-footer bg-white border-top text-end py-3 px-4 flex-shrink-0" style="z-index: 1040;">
-          <button class="btn btn-light border fw-bold px-4 me-2" @click="closeModal">Batal</button>
-          <button class="btn btn-primary fw-bold px-4" @click="saveData" :disabled="(form.type==='JURNAL_UMUM' && !isBalanced) || selisih < 0 || (form.type !== 'JURNAL_UMUM' && (totalDebet <= 0 && totalKredit <= 0))">
+          <button class="btn btn-light border fw-bold px-4 me-2 rounded-0" @click="closeModal">Batal</button>
+          <button class="btn btn-primary fw-bold px-4 rounded-0" @click="saveData" :disabled="(form.type==='JURNAL_UMUM' && !isBalanced) || selisih < 0 || (form.type !== 'JURNAL_UMUM' && (totalDebet <= 0 && totalKredit <= 0))">
             <i class="bi bi-save me-1"></i> Simpan & Posting
           </button>
         </div>
@@ -509,7 +546,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { supabase } from '../utils/supabase'
 import { AppAlert } from '../utils/alert'
 import Swal from 'sweetalert2'
@@ -540,6 +577,66 @@ const form = ref<any>({
   coa_kas: '',
   rincian: []
 })
+
+// FITUR FILTER & SORTING & PAGINATION UNTUK TABEL
+const searchTableQuery = ref('')
+const searchColumn = ref('semua')
+const sortColumn = ref('tanggal_transaksi')
+const sortDirection = ref<'asc' | 'desc'>('desc')
+const currentPage = ref(1)
+const itemsPerPage = 10
+
+watch(searchTableQuery, () => { currentPage.value = 1 })
+watch(searchColumn, () => { currentPage.value = 1 })
+
+const filteredData = computed(() => {
+  if (!searchTableQuery.value) return transactions.value
+  const q = searchTableQuery.value.toLowerCase()
+  return transactions.value.filter(item => {
+    if (searchColumn.value === 'semua') {
+      return (item.kwitansi_internal?.toLowerCase().includes(q) ||
+              item.keterangan?.toLowerCase().includes(q) ||
+              item.pihak_terkait?.toLowerCase().includes(q) ||
+              item.jenis_transaksi?.toLowerCase().includes(q) ||
+              item.no_reff_transfer?.toLowerCase().includes(q)) // TAMBAHAN NO REFF
+    } else {
+      return item[searchColumn.value]?.toString().toLowerCase().includes(q)
+    }
+  })
+})
+
+const sortedData = computed(() => {
+  const data = [...filteredData.value]
+  data.sort((a, b) => {
+    let valA = a[sortColumn.value] || ''
+    let valB = b[sortColumn.value] || ''
+    if (typeof valA === 'string') valA = valA.toLowerCase()
+    if (typeof valB === 'string') valB = valB.toLowerCase()
+
+    if (valA < valB) return sortDirection.value === 'asc' ? -1 : 1
+    if (valA > valB) return sortDirection.value === 'asc' ? 1 : -1
+    return 0
+  })
+  return data
+})
+
+const totalPages = computed(() => Math.ceil(sortedData.value.length / itemsPerPage))
+
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return sortedData.value.slice(start, end)
+})
+
+const handleSort = (col: string) => {
+  if (sortColumn.value === col) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortColumn.value = col
+    sortDirection.value = 'asc'
+  }
+  currentPage.value = 1
+}
 
 onMounted(async () => {
   const userData = localStorage.getItem('integrity_user')
@@ -764,7 +861,8 @@ const fetchData = async () => {
   AppAlert.loading('Memuat data...')
   try {
     const { data, error } = await supabase.from('transaksi')
-      .select('kwitansi_internal, jenis_transaksi, tanggal_transaksi, keterangan, pihak_terkait, metode_pembayaran, created_by, debet')
+      // TAMBAHAN NO REFF PADA SELECT:
+      .select('kwitansi_internal, jenis_transaksi, tanggal_transaksi, keterangan, pihak_terkait, metode_pembayaran, no_reff_transfer, created_by, debet')
       .in('jenis_transaksi', ['KAS_MASUK', 'KAS_KELUAR', 'JURNAL_UMUM'])
       .order('created_at', { ascending: false })
       
@@ -954,6 +1052,7 @@ const deleteData = async (kwitansi_internal: string) => {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
   background-color: rgba(15, 23, 42, 0.6); display: flex; 
   align-items: center; justify-content: center; z-index: 1050; 
+  animation: fadeIn 0.2s ease-out; 
 }
 .custom-modal-card { max-height: 95vh; display: flex; flex-direction: column; }
 .modal-body-scroll { flex: 1 1 auto; overflow-y: auto; }

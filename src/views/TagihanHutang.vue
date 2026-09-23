@@ -7,70 +7,107 @@
           <h4 class="fw-bold text-dark mb-0">Input Tagihan (Invoice)</h4>
           <p class="text-muted small mb-0">Pengakuan hutang dengan multi-jurnal (Split Accounting) terintegrasi</p>
         </div>
-        <button v-if="canCreate" class="btn btn-primary fw-bold px-4 shadow-sm" @click="openAddModal">
+        <button v-if="canCreate" class="btn btn-primary fw-bold px-4 shadow-sm rounded-0" @click="openAddModal">
           <i class="bi bi-plus-lg me-2"></i> Buat Tagihan
         </button>
       </div>
 
-      <!-- TABEL DATA TAGIHAN -->
-      <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
-        <div class="table-responsive" style="min-height: 400px;">
-          <table class="table table-striped table-hover table-bordered align-middle mb-0" style="min-width: 1200px;">
+      <!-- FITUR PENCARIAN -->
+      <div class="d-flex mb-3 gap-2 align-items-center">
+        <select class="form-select form-select-sm w-auto rounded-0 border-secondary" v-model="searchColumn">
+          <option value="semua">Semua Kategori</option>
+          <option value="no_bukti_internal">No. Internal</option>
+          <option value="nomor_tagihan">No. Eksternal / Referensi</option>
+          <option value="created_by">Pembuat</option>
+        </select>
+        <div class="input-group input-group-sm w-25">
+          <span class="input-group-text rounded-0 bg-white border-secondary"><i class="bi bi-search"></i></span>
+          <input type="text" class="form-control rounded-0 border-start-0 border-secondary ps-0" v-model="searchTableQuery" placeholder="Cari data...">
+        </div>
+      </div>
+
+      <!-- TABEL DATA TAGIHAN (GRID KOTAK & FONT KECIL) -->
+      <div class="card border border-secondary shadow-sm rounded-0 overflow-hidden">
+        <div class="table-responsive" style="min-height: 440px;">
+          <table class="table table-sm table-striped table-hover table-bordered align-middle mb-0" style="min-width: 1200px; font-size: 0.85rem;">
             <thead class="table-dark text-center align-middle">
               <tr>
                 <th width="4%" class="py-3">No</th>
-                <th width="20%" class="py-3">No. Internal / Eksternal</th>
-                <th width="15%" class="py-3">Tgl Tagihan & Jatuh Tempo</th>
-                <th width="18%" class="py-3">Nominal Tagihan</th>
-                <th width="18%" class="py-3">Status Anggaran</th>
-                <th width="13%" class="py-3">Pembuat</th>
+                <th width="20%" class="py-3 cursor-pointer" @click="handleSort('no_bukti_internal')">
+                  No. Internal / Eksternal <i class="bi ms-1" :class="sortColumn==='no_bukti_internal' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
+                </th>
+                <th width="15%" class="py-3 cursor-pointer" @click="handleSort('tanggal_tagihan')">
+                  Tgl Tagihan & Jatuh Tempo <i class="bi ms-1" :class="sortColumn==='tanggal_tagihan' ? (sortDirection==='asc' ? 'bi-sort-numeric-down' : 'bi-sort-numeric-up') : 'bi-arrow-down-up opacity-25'"></i>
+                </th>
+                <th width="18%" class="py-3 cursor-pointer" @click="handleSort('jumlah_tagihan')">
+                  Nominal Tagihan <i class="bi ms-1" :class="sortColumn==='jumlah_tagihan' ? (sortDirection==='asc' ? 'bi-sort-numeric-down' : 'bi-sort-numeric-up') : 'bi-arrow-down-up opacity-25'"></i>
+                </th>
+                <th width="18%" class="py-3 cursor-pointer" @click="handleSort('status_anggaran')">
+                  Status Anggaran <i class="bi ms-1" :class="sortColumn==='status_anggaran' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
+                </th>
+                <th width="13%" class="py-3 cursor-pointer" @click="handleSort('created_by')">
+                  Pembuat <i class="bi ms-1" :class="sortColumn==='created_by' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
+                </th>
                 <th width="15%" class="py-3">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-if="tagihans.length === 0">
+              <tr v-if="paginatedData.length === 0">
                 <td colspan="7" class="text-center text-muted py-5">
-                  <i class="bi bi-receipt fs-2 d-block mb-2"></i> Belum ada data tagihan.
+                  <i class="bi bi-receipt fs-2 d-block mb-2"></i> Data tidak ditemukan.
                 </td>
               </tr>
               
-              <tr v-for="(item, index) in tagihans" :key="item.id">
-                <td class="text-center text-muted">{{ Number(index) + 1 }}</td>
+              <tr v-for="(item, index) in paginatedData" :key="item.id">
+                <td class="text-center text-muted">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
                 <td>
                   <div class="fw-bold text-dark">{{ item.no_bukti_internal }}</div>
-                  <div class="small text-muted mt-1">Ref: {{ item.nomor_tagihan }}</div>
+                  <div class="text-muted mt-1" style="font-size: 0.75rem;">Ref: {{ item.nomor_tagihan }}</div>
                 </td>
                 <td class="text-center">
-                  <div class="small fw-bold">{{ formatDate(item.tanggal_tagihan) }}</div>
-                  <div class="small text-danger mt-1">JT: {{ formatDate(item.jatuh_tempo) }}</div>
+                  <div class="fw-bold">{{ formatDate(item.tanggal_tagihan) }}</div>
+                  <div class="text-danger mt-1" style="font-size: 0.75rem;">JT: {{ formatDate(item.jatuh_tempo) }}</div>
                 </td>
                 <td class="text-end fw-bold text-primary">{{ formatRupiah(item.jumlah_tagihan) }}</td>
                 <td class="text-center">
-                  <span v-if="item.status_anggaran === 'TERPOTONG'" class="badge bg-success bg-opacity-10 text-success border border-success">
+                  <span v-if="item.status_anggaran === 'TERPOTONG'" class="badge bg-success bg-opacity-10 text-success border border-success rounded-0">
                     <i class="bi bi-check-circle me-1"></i> Terpotong
                   </span>
-                  <span v-else class="badge bg-warning bg-opacity-10 text-warning border border-warning">
+                  <span v-else class="badge bg-warning bg-opacity-10 text-warning border border-warning rounded-0">
                     <i class="bi bi-hourglass me-1"></i> Ditangguhkan
                   </span>
                 </td>
-                <td class="text-center small text-muted">{{ item.created_by }}</td>
+                <td class="text-center text-muted">{{ item.created_by }}</td>
                 <td class="text-center text-nowrap">
                   <!-- TOMBOL CETAK JURNAL INTERNAL -->
-                  <button class="btn btn-sm btn-light text-success border me-1 shadow-sm" @click="printJurnal(item)" title="Cetak Bukti Jurnal">
+                  <button class="btn btn-sm btn-light text-success border me-1 rounded-0 shadow-sm" @click="printJurnal(item)" title="Cetak Bukti Jurnal">
                     <i class="bi bi-printer"></i>
                   </button>
                   <!-- TOMBOL CETAK TANDA TERIMA EKSTERNAL -->
-                  <button class="btn btn-sm btn-light text-primary border me-1 shadow-sm" @click="printTandaTerima(item)" title="Cetak Tanda Terima">
+                  <button class="btn btn-sm btn-light text-primary border me-1 rounded-0 shadow-sm" @click="printTandaTerima(item)" title="Cetak Tanda Terima">
                     <i class="bi bi-file-earmark-text"></i>
                   </button>
                   <!-- TOMBOL VOID -->
-                  <button v-if="canDelete" class="btn btn-sm btn-light text-danger border shadow-sm" @click="deleteData(item.id, item.no_bukti_internal)" title="Void / Batalkan">
+                  <button v-if="canDelete" class="btn btn-sm btn-light text-danger border rounded-0 shadow-sm" @click="deleteData(item.id, item.no_bukti_internal)" title="Void / Batalkan">
                     <i class="bi bi-x-circle"></i>
                   </button>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- PAGINATION CONTROLS -->
+        <div class="d-flex justify-content-between align-items-center p-3 bg-light border-top">
+          <div class="text-muted fw-bold" style="font-size: 0.85rem;">
+            Tampil {{ sortedData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1 }} -
+            {{ Math.min(currentPage * itemsPerPage, sortedData.length) }} dari {{ sortedData.length }} data
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-sm btn-outline-secondary rounded-0 fw-bold" :disabled="currentPage === 1" @click="currentPage--"><i class="bi bi-chevron-left me-1"></i> Prev</button>
+            <button class="btn btn-sm btn-outline-secondary rounded-0 fw-bold" disabled>Hal {{ currentPage }} / {{ totalPages || 1 }}</button>
+            <button class="btn btn-sm btn-outline-secondary rounded-0 fw-bold" :disabled="currentPage === totalPages || totalPages === 0" @click="currentPage++">Next <i class="bi bi-chevron-right ms-1"></i></button>
+          </div>
         </div>
       </div>
     </div>
@@ -190,7 +227,7 @@
           </div>
         </template>
 
-        <!-- LAYOUT 2: BUKTI TANDA TERIMA EKSTERNAL (MENGIKUTI GAYA BKM) -->
+        <!-- LAYOUT 2: BUKTI TANDA TERIMA EKSTERNAL (DESAIN RAPI SEPERTI INVOICE PIUTANG) -->
         <template v-if="printMode === 'tanda_terima'">
           
           <table class="w-100 mb-4 text-dark" style="font-size: 9pt;">
@@ -208,21 +245,34 @@
             </tr>
             <tr>
               <td class="fw-bold p-1">Jatuh Tempo</td>
-              <td class="p-1 fw-bold pe-2" style="text-align: right;">{{ formatDateStr(itemToPrint.jatuh_tempo) }}</td>
+              <td class="p-1 fw-bold pe-2 text-danger" style="text-align: right;">{{ formatDateStr(itemToPrint.jatuh_tempo) }}</td>
               <td class="fw-bold p-1 ps-4">Timestamp</td>
               <td class="p-1 pe-2" style="text-align: right;">{{ formatDateTime(itemToPrint.created_at) }}</td>
             </tr>
           </table>
 
-          <div class="w-100 p-4 mb-5 mt-3 border border-dark text-dark text-center" style="font-size: 11pt; line-height: 1.8; background-color: #f8f9fa;">
-            Telah disetujui tagihan dari <strong class="fs-6">{{ itemToPrint.nama_pihak_lawan }}</strong> 
-            sebesar <strong class="fs-6">Rp {{ formatNominal(itemToPrint.jumlah_tagihan) }}</strong><br>
-            dengan tujuan <strong>{{ itemToPrint.keterangan }}</strong><br>
-            pada tanggal <strong>{{ formatDateStr(itemToPrint.tanggal_tagihan) }}</strong> 
-            dan jatuh tempo pada tanggal <strong>{{ formatDateStr(itemToPrint.jatuh_tempo) }}</strong>.
+          <div class="text-dark" style="font-size: 10pt; border-top: 1px solid #dee2e6; padding-top: 15px;">
+            <p class="mb-3 fw-bold">
+              Telah disetujui tagihan dari <span class="text-uppercase">{{ itemToPrint.nama_pihak_lawan }}</span> 
+              pada tanggal {{ formatDateStr(itemToPrint.tanggal_tagihan) }} dengan batas jatuh tempo pada 
+              <span class="text-danger">{{ formatDateStr(itemToPrint.jatuh_tempo) }}</span> sebesar :
+            </p>
+
+            <div class="border border-dark text-center py-2 mb-3 fw-bold bg-white" style="font-size: 13pt;">
+              Rp {{ formatNominal(itemToPrint.jumlah_tagihan) }}
+            </div>
+
+            <p class="fst-italic fw-bold mb-4" style="font-size: 10pt;">
+              Terbilang : {{ formatTerbilang(itemToPrint.jumlah_tagihan) }}
+            </p>
+
+            <div class="fw-bold mb-1" style="font-size: 10pt;">Untuk Tujuan Tagihan</div>
+            <div class="border border-dark p-2 mb-5 bg-white" style="font-size: 10pt; min-height: 45px;">
+              {{ itemToPrint.keterangan }}
+            </div>
           </div>
 
-          <!-- TANDA TANGAN (MENGIKUTI GAYA BKM) -->
+          <!-- TANDA TANGAN -->
           <table class="w-100 text-center text-dark" style="font-size: 10pt;">
             <tr>
               <td width="40%"></td>
@@ -254,8 +304,9 @@
 
     <!-- MODAL FORM INPUT TAGIHAN -->
     <div v-if="isModalOpen" class="custom-modal-overlay screen-only">
-      
-      <div class="custom-modal-card card border-0 shadow-lg rounded-4 overflow-hidden" style="max-width: 1000px; width: 95%; z-index: 1050;">
+      <div v-if="activeDropdown" class="position-fixed top-0 start-0 w-100 h-100 overlay-dropdown" @click="closeAllDropdowns"></div>
+
+      <div class="custom-modal-card card border-0 shadow-lg rounded-0 overflow-hidden" style="max-width: 1000px; width: 95%; z-index: 1050;">
         
         <div class="card-header bg-white border-bottom px-4 py-3 d-flex justify-content-between align-items-center flex-shrink-0">
           <h5 class="fw-bold mb-0 text-dark">
@@ -266,12 +317,12 @@
 
         <div class="card-body p-4 modal-body-scroll custom-scrollbar bg-light bg-opacity-50">
           
-          <div class="bg-white p-3 rounded border shadow-sm mb-4">
+          <div class="bg-white p-3 rounded-0 border shadow-sm mb-4">
             <h6 class="fw-bold mb-3 border-bottom pb-2"><i class="bi bi-file-earmark-text me-2"></i>Data Dokumen</h6>
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label small fw-bold">Referensi Master Hutang <span class="text-danger">*</span></label>
-                <select class="form-select" v-model="form.master_hutang_id">
+                <select class="form-select rounded-0" v-model="form.master_hutang_id">
                   <option value="" disabled>-- Pilih Dokumen Perjanjian --</option>
                   <option v-for="mh in masterHutangs" :key="mh.id" :value="mh.id">
                     {{ mh.nomor_perjanjian }} - {{ mh.pihak_lawan?.nama }}
@@ -280,21 +331,21 @@
               </div>
               <div class="col-md-6">
                 <label class="form-label small fw-bold">Nomor Tagihan (Invoice Eksternal) <span class="text-danger">*</span></label>
-                <input type="text" class="form-control fw-bold" v-model="form.nomor_tagihan" placeholder="INV-...">
+                <input type="text" class="form-control fw-bold rounded-0" v-model="form.nomor_tagihan" placeholder="INV-...">
               </div>
               <div class="col-md-4">
                 <label class="form-label small fw-bold">Tanggal Tagihan <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" v-model="form.tanggal_tagihan">
+                <input type="date" class="form-control rounded-0" v-model="form.tanggal_tagihan">
               </div>
               <div class="col-md-4">
                 <label class="form-label small fw-bold text-danger">Jatuh Tempo <span class="text-danger">*</span></label>
-                <input type="date" class="form-control border-danger" v-model="form.jatuh_tempo">
+                <input type="date" class="form-control border-danger rounded-0" v-model="form.jatuh_tempo">
               </div>
               <div class="col-md-4">
                 <label class="form-label small fw-bold">Total Nilai Tagihan <span class="text-danger">*</span></label>
                 <div class="input-group">
-                  <span class="input-group-text fw-bold">Rp</span>
-                  <input type="text" class="form-control fw-bold text-primary" 
+                  <span class="input-group-text fw-bold rounded-0">Rp</span>
+                  <input type="text" class="form-control fw-bold text-primary rounded-0" 
                          :value="formatInputRupiah(form.jumlah_tagihan)" 
                          @input="handleMainNominalInput" 
                          placeholder="0">
@@ -302,33 +353,33 @@
               </div>
               <div class="col-12">
                 <label class="form-label small fw-bold">Uraian / Keterangan Umum <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" v-model="form.keterangan" placeholder="Keterangan untuk transaksi ini...">
+                <input type="text" class="form-control rounded-0" v-model="form.keterangan" placeholder="Keterangan untuk transaksi ini...">
               </div>
             </div>
           </div>
 
-          <div class="bg-white p-3 rounded border shadow-sm">
+          <div class="bg-white p-3 rounded-0 border shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
               <h6 class="fw-bold mb-0"><i class="bi bi-calculator me-2"></i>Pemetaan Jurnal (Double Entry)</h6>
-              <span class="badge" :class="isBalanced ? 'bg-success' : 'bg-danger'">
+              <span class="badge rounded-0" :class="isBalanced ? 'bg-success' : 'bg-danger'">
                 {{ isBalanced ? 'BALANCE' : 'TIDAK BALANCE' }}
               </span>
             </div>
 
-            <div class="p-3 bg-danger bg-opacity-10 border border-danger rounded mb-3 position-relative">
+            <div class="p-3 bg-danger bg-opacity-10 border border-danger rounded-0 mb-3 position-relative">
               <div class="row align-items-end">
                 <div class="col-md-6">
                   <label class="form-label small fw-bold text-danger">Akun Hutang (Kewajiban Utama) <span class="text-danger">*</span></label>
                   
                   <div class="position-relative dropdown-container" :style="{ zIndex: activeDropdown === 'main-coa' ? 1050 : 1 }">
-                    <div class="form-control border-danger bg-white d-flex justify-content-between align-items-center cursor-pointer"
+                    <div class="form-control border-danger bg-white d-flex justify-content-between align-items-center cursor-pointer rounded-0"
                          @click="toggleDropdown('main-coa')">
                       <span class="text-truncate" :class="{'text-muted': !form.coa_hutang}">{{ getCoaLabel(form.coa_hutang) }}</span>
                       <i class="bi bi-search small text-danger"></i>
                     </div>
 
-                    <div v-if="activeDropdown === 'main-coa'" class="position-absolute w-100 bg-white border border-danger rounded shadow mt-1 p-2 custom-dropdown-menu">
-                      <input type="text" class="form-control border-danger mb-2 sticky-top" placeholder="Cari Kode / Nama COA Hutang..." v-model="searchQuery" @click.stop>
+                    <div v-if="activeDropdown === 'main-coa'" class="position-absolute w-100 bg-white border border-danger rounded-0 shadow mt-1 p-2 custom-dropdown-menu">
+                      <input type="text" class="form-control border-danger mb-2 sticky-top rounded-0" placeholder="Cari Kode / Nama COA Hutang..." v-model="searchQuery" @click.stop>
                       <div class="list-group list-group-flush">
                         <button v-for="coa in filteredCOA" :key="coa.id"
                                 class="list-group-item list-group-item-action p-2 small text-start border-bottom"
@@ -352,12 +403,12 @@
 
             <div class="d-flex justify-content-between align-items-center mb-2">
               <label class="form-label small fw-bold text-primary mb-0">Rincian Akun Lawan (Biaya / Aset / Pajak)</label>
-              <button class="btn btn-sm btn-outline-primary fw-bold" @click="addJurnalRow">
+              <button class="btn btn-sm btn-outline-primary fw-bold rounded-0" @click="addJurnalRow">
                 <i class="bi bi-plus-circle me-1"></i> Tambah Baris
               </button>
             </div>
             
-            <div class="table-responsive border rounded mb-3 table-visible-overflow position-relative">
+            <div class="table-responsive border rounded-0 mb-3 table-visible-overflow position-relative" style="z-index: 10;">
               <table class="table table-sm table-bordered align-middle mb-0">
                 <thead class="bg-light text-center small">
                   <tr>
@@ -372,7 +423,7 @@
                   <tr v-for="(row, idx) in form.jurnal_lawan" :key="idx">
                     <td>
                       <div class="position-relative dropdown-container" :style="{ zIndex: activeDropdown === `row-${idx}-coa` ? 1050 : 1 }">
-                        <div class="form-control form-control-sm bg-white d-flex justify-content-between align-items-center cursor-pointer"
+                        <div class="form-control form-control-sm bg-white d-flex justify-content-between align-items-center cursor-pointer rounded-0"
                              @click="toggleDropdown(`row-${idx}-coa`)">
                           <span class="text-truncate d-inline-block" style="max-width: 180px;" :class="{'text-muted': !row.coa_code}">
                             {{ getCoaLabel(row.coa_code) }}
@@ -380,8 +431,8 @@
                           <i class="bi bi-search small text-muted"></i>
                         </div>
 
-                        <div v-if="activeDropdown === `row-${idx}-coa`" class="position-absolute bg-white border rounded shadow mt-1 p-2 custom-dropdown-menu" style="min-width: 300px;">
-                          <input type="text" class="form-control form-control-sm mb-2 sticky-top" placeholder="Ketik Kode / Nama COA..." v-model="searchQuery" @click.stop>
+                        <div v-if="activeDropdown === `row-${idx}-coa`" class="position-absolute bg-white border rounded-0 shadow mt-1 p-2 custom-dropdown-menu" style="min-width: 300px;">
+                          <input type="text" class="form-control form-control-sm mb-2 sticky-top rounded-0" placeholder="Ketik Kode / Nama COA..." v-model="searchQuery" @click.stop>
                           <div class="list-group list-group-flush">
                             <button v-for="coa in filteredCOA" :key="coa.id"
                                     class="list-group-item list-group-item-action p-2 small text-start border-bottom"
@@ -396,7 +447,7 @@
                     </td>
                     <td>
                       <div class="position-relative dropdown-container" :style="{ zIndex: activeDropdown === `row-${idx}-anggaran` ? 1050 : 1 }">
-                        <div class="form-control form-control-sm bg-white d-flex justify-content-between align-items-center cursor-pointer"
+                        <div class="form-control form-control-sm bg-white d-flex justify-content-between align-items-center cursor-pointer rounded-0"
                              @click="toggleDropdown(`row-${idx}-anggaran`)">
                           <span class="text-truncate d-inline-block" style="max-width: 150px;" :class="{'text-muted': !row.pos_anggaran_id}">
                             {{ getAnggaranLabel(row.pos_anggaran_id) }}
@@ -404,8 +455,8 @@
                           <i class="bi bi-search small text-muted"></i>
                         </div>
 
-                        <div v-if="activeDropdown === `row-${idx}-anggaran`" class="position-absolute bg-white border rounded shadow mt-1 p-2 custom-dropdown-menu" style="min-width: 280px;">
-                          <input type="text" class="form-control form-control-sm mb-2 sticky-top" placeholder="Cari Kode / Nama Pos..." v-model="searchQuery" @click.stop>
+                        <div v-if="activeDropdown === `row-${idx}-anggaran`" class="position-absolute bg-white border rounded-0 shadow mt-1 p-2 custom-dropdown-menu" style="min-width: 280px;">
+                          <input type="text" class="form-control form-control-sm mb-2 sticky-top rounded-0" placeholder="Cari Kode / Nama Pos..." v-model="searchQuery" @click.stop>
                           <div class="list-group list-group-flush">
                             <button class="list-group-item list-group-item-action p-2 small text-start border-bottom text-muted fst-italic" @click="selectRowAnggaran(Number(idx), '')">
                               -- Tanpa Anggaran --
@@ -422,19 +473,19 @@
                       </div>
                     </td>
                     <td>
-                      <select class="form-select form-select-sm" v-model="row.posisi" :class="row.posisi === 'D' ? 'text-primary fw-bold' : 'text-danger fw-bold'">
+                      <select class="form-select form-select-sm rounded-0" v-model="row.posisi" :class="row.posisi === 'D' ? 'text-primary fw-bold' : 'text-danger fw-bold'">
                         <option value="D">DEBET</option>
                         <option value="K">KREDIT</option>
                       </select>
                     </td>
                     <td>
-                      <input type="text" class="form-control form-control-sm text-end fw-bold" 
+                      <input type="text" class="form-control form-control-sm text-end fw-bold rounded-0" 
                              :value="formatInputRupiah(row.nominal)" 
                              @input="(e) => handleRowNominalInput(Number(idx), e)" 
                              placeholder="0">
                     </td>
                     <td class="text-center">
-                      <button class="btn btn-sm btn-light text-danger" @click="removeJurnalRow(Number(idx))" :disabled="form.jurnal_lawan.length === 1">
+                      <button class="btn btn-sm btn-light text-danger rounded-0" @click="removeJurnalRow(Number(idx))" :disabled="form.jurnal_lawan.length === 1">
                         <i class="bi bi-trash"></i>
                       </button>
                     </td>
@@ -444,7 +495,7 @@
             </div>
 
             <!-- RINGKASAN BALANCE -->
-            <div class="row text-center fw-bold bg-light rounded p-2 border mx-0 mt-3">
+            <div class="row text-center fw-bold bg-light rounded-0 p-2 border mx-0 mt-3">
               <div class="col-4 border-end">
                 <div class="small text-muted">Total Debet</div>
                 <div class="text-primary fs-6">Rp {{ formatNominal(totalDebet) }}</div>
@@ -465,8 +516,8 @@
         </div>
         
         <div class="card-footer bg-white border-top text-end py-3 px-4 flex-shrink-0" style="z-index: 1040;">
-          <button class="btn btn-light border fw-bold px-4 me-2" @click="closeModal">Batal</button>
-          <button class="btn btn-primary fw-bold px-4" @click="saveData" :disabled="!isBalanced || selisih !== 0">
+          <button class="btn btn-light border fw-bold px-4 me-2 rounded-0" @click="closeModal">Batal</button>
+          <button class="btn btn-primary fw-bold px-4 rounded-0" @click="saveData" :disabled="!isBalanced || selisih !== 0">
             <i class="bi bi-save me-1"></i> Simpan & Posting
           </button>
         </div>
@@ -476,7 +527,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { supabase } from '../utils/supabase'
 import { AppAlert } from '../utils/alert'
 import Swal from 'sweetalert2'
@@ -494,7 +545,7 @@ const itemToPrint = ref<any>(null)
 const printMode = ref<'jurnal' | 'tanda_terima'>('jurnal')
 
 const activeDropdown = ref<string | null>(null)
-const searchQuery = ref('')
+const searchQuery = ref('') // UNTUK MODAL COA
 
 const form = ref<any>({
   master_hutang_id: '', 
@@ -506,6 +557,64 @@ const form = ref<any>({
   coa_hutang: '',
   jurnal_lawan: []
 })
+
+// FITUR FILTER & SORTING & PAGINATION UNTUK TABEL
+const searchTableQuery = ref('') // VARIABEL KHUSUS TABEL
+const searchColumn = ref('semua')
+const sortColumn = ref('created_at')
+const sortDirection = ref<'asc' | 'desc'>('desc')
+const currentPage = ref(1)
+const itemsPerPage = 10
+
+watch(searchTableQuery, () => { currentPage.value = 1 })
+watch(searchColumn, () => { currentPage.value = 1 })
+
+const filteredData = computed(() => {
+  if (!searchTableQuery.value) return tagihans.value
+  const q = searchTableQuery.value.toLowerCase()
+  return tagihans.value.filter(item => {
+    if (searchColumn.value === 'semua') {
+      return (item.no_bukti_internal?.toLowerCase().includes(q) ||
+              item.nomor_tagihan?.toLowerCase().includes(q) ||
+              item.created_by?.toLowerCase().includes(q))
+    } else {
+      return item[searchColumn.value]?.toString().toLowerCase().includes(q)
+    }
+  })
+})
+
+const sortedData = computed(() => {
+  const data = [...filteredData.value]
+  data.sort((a, b) => {
+    let valA = a[sortColumn.value] || ''
+    let valB = b[sortColumn.value] || ''
+    if (typeof valA === 'string') valA = valA.toLowerCase()
+    if (typeof valB === 'string') valB = valB.toLowerCase()
+
+    if (valA < valB) return sortDirection.value === 'asc' ? -1 : 1
+    if (valA > valB) return sortDirection.value === 'asc' ? 1 : -1
+    return 0
+  })
+  return data
+})
+
+const totalPages = computed(() => Math.ceil(sortedData.value.length / itemsPerPage))
+
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return sortedData.value.slice(start, end)
+})
+
+const handleSort = (col: string) => {
+  if (sortColumn.value === col) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortColumn.value = col
+    sortDirection.value = 'asc'
+  }
+  currentPage.value = 1
+}
 
 onMounted(async () => {
   const userData = localStorage.getItem('integrity_user')
@@ -639,6 +748,26 @@ const formatInputRupiah = (val: number | string) => {
   return new Intl.NumberFormat('id-ID').format(Number(val))
 }
 
+const terbilang = (angka: number): string => {
+  const bilangan = ['','Satu','Dua','Tiga','Empat','Lima','Enam','Tujuh','Delapan','Sembilan','Sepuluh','Sebelas']
+  if (angka < 12) return bilangan[angka]
+  if (angka < 20) return terbilang(angka - 10) + ' Belas'
+  if (angka < 100) return terbilang(Math.floor(angka / 10)) + ' Puluh ' + terbilang(angka % 10)
+  if (angka < 200) return 'Seratus ' + terbilang(angka - 100)
+  if (angka < 1000) return terbilang(Math.floor(angka / 100)) + ' Ratus ' + terbilang(angka % 100)
+  if (angka < 2000) return 'Seribu ' + terbilang(angka - 1000)
+  if (angka < 1000000) return terbilang(Math.floor(angka / 1000)) + ' Ribu ' + terbilang(angka % 1000)
+  if (angka < 1000000000) return terbilang(Math.floor(angka / 1000000)) + ' Juta ' + terbilang(angka % 1000000)
+  if (angka < 1000000000000) return terbilang(Math.floor(angka / 1000000000)) + ' Miliar ' + terbilang(angka % 1000000000)
+  return ''
+}
+
+const formatTerbilang = (angka: number) => {
+  if (!angka) return 'Nol Rupiah'
+  let result = terbilang(angka).replace(/\s+/g, ' ').trim()
+  return result + ' Rupiah'
+}
+
 const generateNoBuktiTagihan = () => {
   const now = new Date()
   
@@ -740,7 +869,7 @@ const fetchData = async () => {
     const { data, error } = await supabase.from('tagihan_hutang')
       .select(`*, master_hutang (nomor_perjanjian)`)
       .order('created_at', { ascending: false })
-      .limit(500)
+      .limit(1000) 
     if (error) throw error
     tagihans.value = data || []
     AppAlert.close()
@@ -941,6 +1070,7 @@ const deleteData = async (id: string, no_internal: string) => {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
   background-color: rgba(15, 23, 42, 0.6); display: flex; 
   align-items: center; justify-content: center; z-index: 1050; 
+  animation: fadeIn 0.2s ease-out; 
 }
 .custom-modal-card { max-height: 95vh; display: flex; flex-direction: column; }
 .modal-body-scroll { flex: 1 1 auto; overflow-y: auto; }
@@ -979,6 +1109,8 @@ const deleteData = async (id: string, no_internal: string) => {
   
   .info-table td { border: none !important; padding: 2px 8px !important; }
   .bg-light { background-color: #e9ecef !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .print-bg-gray { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  
   .tracking-wide { letter-spacing: 2px; }
   .text-dark { color: black !important; }
 }

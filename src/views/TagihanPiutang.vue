@@ -1,52 +1,51 @@
 <template>
-  <div class="pembayaran-hutang">
+  <div class="tagihan-piutang">
     <!-- UI UTAMA APLIKASI -->
     <div class="screen-only">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h4 class="fw-bold text-dark mb-0">Pembayaran Tagihan / Hutang</h4>
-          <p class="text-muted small mb-0">Pencatatan pelunasan faktur dan penerbitan Bukti Kas Keluar (BKK).</p>
+          <h4 class="fw-bold text-dark mb-0">Input Piutang (Invoice Keluar)</h4>
+          <p class="text-muted small mb-0">Penerbitan tagihan kepada mitra/klien dengan multi-jurnal pendapatan terintegrasi.</p>
         </div>
         <button v-if="canCreate" class="btn btn-primary fw-bold px-4 shadow-sm rounded-0" @click="openAddModal">
-          <i class="bi bi-wallet2 me-2"></i> Bayar Tagihan
+          <i class="bi bi-plus-lg me-2"></i> Buat Invoice
         </button>
       </div>
 
-      <!-- FITUR PENCARIAN -->
+      <!-- FITUR PENCARIAN TABEL -->
       <div class="d-flex mb-3 gap-2 align-items-center">
         <select class="form-select form-select-sm w-auto rounded-0 border-secondary" v-model="searchColumn">
           <option value="semua">Semua Kategori</option>
-          <option value="no_bukti_internal">No. BKK</option>
-          <option value="nama_pihak_lawan">Pihak Lawan</option>
-          <option value="no_reff_transfer">No. Referensi / Trf</option>
+          <option value="no_bukti_internal">No. Internal</option>
+          <option value="nomor_tagihan">No. Invoice Keluar</option>
           <option value="created_by">Pembuat</option>
         </select>
         <div class="input-group input-group-sm w-25">
           <span class="input-group-text rounded-0 bg-white border-secondary"><i class="bi bi-search"></i></span>
-          <input type="text" class="form-control rounded-0 border-start-0 border-secondary ps-0" v-model="searchTableQuery" placeholder="Cari data...">
+          <input type="text" class="form-control rounded-0 border-start-0 border-secondary ps-0" v-model="searchTableQuery" placeholder="Cari data invoice...">
         </div>
       </div>
 
-      <!-- TABEL DATA PEMBAYARAN (GRID KOTAK & FONT KECIL) -->
+      <!-- TABEL DATA TAGIHAN PIUTANG (GRID KOTAK & FONT KECIL) -->
       <div class="card border border-secondary shadow-sm rounded-0 overflow-hidden">
         <div class="table-responsive" style="min-height: 440px;">
           <table class="table table-sm table-striped table-hover table-bordered align-middle mb-0" style="min-width: 1200px; font-size: 0.85rem;">
             <thead class="table-dark text-center align-middle">
               <tr>
                 <th width="4%" class="py-3">No</th>
-                <th width="18%" class="py-3 cursor-pointer" @click="handleSort('no_bukti_internal')">
-                  No. BKK & Tgl Bayar <i class="bi ms-1" :class="sortColumn==='no_bukti_internal' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
+                <th width="20%" class="py-3 cursor-pointer" @click="handleSort('no_bukti_internal')">
+                  No. Internal / Invoice Keluar <i class="bi ms-1" :class="sortColumn==='no_bukti_internal' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
                 </th>
-                <th width="20%" class="py-3 cursor-pointer" @click="handleSort('nama_pihak_lawan')">
-                  Ref. Tagihan & Pihak Lawan <i class="bi ms-1" :class="sortColumn==='nama_pihak_lawan' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
+                <th width="15%" class="py-3 cursor-pointer" @click="handleSort('tanggal_tagihan')">
+                  Tgl Invoice & Jatuh Tempo <i class="bi ms-1" :class="sortColumn==='tanggal_tagihan' ? (sortDirection==='asc' ? 'bi-sort-numeric-down' : 'bi-sort-numeric-up') : 'bi-arrow-down-up opacity-25'"></i>
                 </th>
-                <th width="15%" class="py-3 cursor-pointer" @click="handleSort('metode_pembayaran')">
-                  Metode Bayar <i class="bi ms-1" :class="sortColumn==='metode_pembayaran' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
+                <th width="18%" class="py-3 cursor-pointer" @click="handleSort('jumlah_tagihan')">
+                  Nominal Piutang <i class="bi ms-1" :class="sortColumn==='jumlah_tagihan' ? (sortDirection==='asc' ? 'bi-sort-numeric-down' : 'bi-sort-numeric-up') : 'bi-arrow-down-up opacity-25'"></i>
                 </th>
-                <th width="16%" class="py-3 cursor-pointer" @click="handleSort('jumlah_bayar')">
-                  Hutang Terbayar <i class="bi ms-1" :class="sortColumn==='jumlah_bayar' ? (sortDirection==='asc' ? 'bi-sort-numeric-down' : 'bi-sort-numeric-up') : 'bi-arrow-down-up opacity-25'"></i>
+                <th width="18%" class="py-3 cursor-pointer" @click="handleSort('status_anggaran')">
+                  Status Anggaran <i class="bi ms-1" :class="sortColumn==='status_anggaran' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
                 </th>
-                <th width="12%" class="py-3 cursor-pointer" @click="handleSort('created_by')">
+                <th width="13%" class="py-3 cursor-pointer" @click="handleSort('created_by')">
                   Pembuat <i class="bi ms-1" :class="sortColumn==='created_by' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
                 </th>
                 <th width="15%" class="py-3">Aksi</th>
@@ -55,7 +54,7 @@
             <tbody>
               <tr v-if="paginatedData.length === 0">
                 <td colspan="7" class="text-center text-muted py-5">
-                  <i class="bi bi-wallet fs-2 d-block mb-2"></i> Data tidak ditemukan.
+                  <i class="bi bi-receipt fs-2 d-block mb-2"></i> Data tidak ditemukan.
                 </td>
               </tr>
               
@@ -63,23 +62,27 @@
                 <td class="text-center text-muted">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
                 <td>
                   <div class="fw-bold text-dark">{{ item.no_bukti_internal }}</div>
-                  <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ formatDate(item.tanggal_pembayaran) }}</div>
-                </td>
-                <td>
-                  <div class="fw-bold text-dark">{{ item.tagihan_hutang?.nomor_tagihan || 'Unknown' }}</div>
-                  <div class="text-primary mt-1" style="font-size: 0.75rem;">{{ item.nama_pihak_lawan }}</div>
+                  <div class="text-muted mt-1" style="font-size: 0.75rem;">Inv: {{ item.nomor_tagihan || '-' }}</div>
                 </td>
                 <td class="text-center">
-                  <span class="badge bg-secondary w-100 py-1 rounded-0">{{ item.metode_pembayaran }}</span>
-                  <div class="text-muted mt-1" style="font-size: 0.7rem;">{{ item.no_reff_transfer || '-' }}</div>
+                  <div class="fw-bold">{{ formatDate(item.tanggal_tagihan) }}</div>
+                  <div class="text-danger mt-1" style="font-size: 0.75rem;">JT: {{ formatDate(item.jatuh_tempo) }}</div>
                 </td>
-                <td class="text-end fw-bold text-danger">Rp {{ formatNominal(item.jumlah_bayar) }}</td>
+                <td class="text-end fw-bold text-primary">{{ formatRupiah(item.jumlah_tagihan) }}</td>
+                <td class="text-center">
+                  <span v-if="item.status_anggaran === 'TERPOTONG'" class="badge bg-success bg-opacity-10 text-success border border-success rounded-0">
+                    <i class="bi bi-check-circle me-1"></i> Teralokasi
+                  </span>
+                  <span v-else class="badge bg-warning bg-opacity-10 text-warning border border-warning rounded-0">
+                    <i class="bi bi-hourglass me-1"></i> Ditangguhkan
+                  </span>
+                </td>
                 <td class="text-center text-muted">{{ item.created_by }}</td>
                 <td class="text-center text-nowrap">
-                  <button class="btn btn-sm btn-light text-success border me-1 rounded-0 shadow-sm" @click="printJurnal(item)" title="Cetak Bukti Jurnal Internal">
+                  <button class="btn btn-sm btn-light text-success border me-1 rounded-0 shadow-sm" @click="printJurnal(item)" title="Cetak Bukti Jurnal">
                     <i class="bi bi-printer"></i>
                   </button>
-                  <button class="btn btn-sm btn-light text-primary border me-1 rounded-0 shadow-sm" @click="printKuitansi(item)" title="Cetak Kuitansi BKK">
+                  <button class="btn btn-sm btn-light text-primary border me-1 rounded-0 shadow-sm" @click="printInvoice(item)" title="Cetak Invoice Keluar">
                     <i class="bi bi-file-earmark-text"></i>
                   </button>
                   <button v-if="canDelete" class="btn btn-sm btn-light text-danger border rounded-0 shadow-sm" @click="deleteData(item.id, item.no_bukti_internal)" title="Void / Batalkan">
@@ -105,100 +108,12 @@
         </div>
       </div>
     </div>
-    <!-- END UI UTAMA -->
 
     <!-- AREA CETAK KHUSUS -->
     <div id="print-area" v-if="itemToPrint">
       <div class="print-container">
         
-        <!-- LAYOUT 1: BUKTI KUITANSI BKK (EKSTERNAL) -->
-        <template v-if="printMode === 'kuitansi'">
-          <table class="w-100 table-print border-dark mb-4">
-            <tr>
-              <td width="75%" class="p-2 align-middle print-bg-gray">
-                <div class="d-flex align-items-center">
-                  <img v-if="company.logo_url" :src="company.logo_url" alt="Logo" style="max-height: 55px; margin-right: 15px;">
-                  <div>
-                    <h5 class="mb-0 fw-bold text-dark text-uppercase" style="font-size: 12pt;">{{ company.nama || 'NAMA INSTANSI' }}</h5>
-                    <div v-if="company.sub_nama" style="font-size: 9pt; font-weight: bold; margin-bottom: 2px;">{{ company.sub_nama }}</div>
-                    <div style="font-size: 9pt;" v-if="company.alamat || company.email">
-                      <span v-if="company.alamat">{{ company.alamat }}</span>
-                      <span v-if="company.alamat && company.email"> | </span>
-                      <span v-if="company.email">{{ company.email }}</span>
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td width="25%" class="text-center align-middle print-bg-gray fw-bold" style="font-size: 18pt;">
-                BKK
-              </td>
-            </tr>
-          </table>
-
-          <table class="w-100 mb-4 text-dark" style="font-size: 9pt;">
-            <tr>
-              <td width="15%" class="fw-bold p-1">No. Kwitansi</td>
-              <td width="35%" class="p-1 fw-bold pe-2" style="text-align: right;">{{ itemToPrint.no_bukti_internal }}</td>
-              <td width="15%" class="fw-bold p-1 ps-4">Tanggal</td>
-              <td width="35%" class="p-1 fw-bold pe-2" style="text-align: right;">{{ formatDateStr(itemToPrint.tanggal_pembayaran) }}</td>
-            </tr>
-            <tr>
-              <td class="fw-bold p-1">Inv. Eksternal</td>
-              <td class="p-1 fw-bold pe-2" style="text-align: right;">{{ itemToPrint.tagihan_hutang?.nomor_tagihan || '-' }}</td>
-              <td class="fw-bold p-1 ps-4">Dibuat Oleh</td>
-              <td class="p-1 pe-2" style="text-align: right;">{{ itemToPrint.created_by }}</td>
-            </tr>
-            <tr>
-              <td class="fw-bold p-1">No. Reff Trf</td>
-              <td class="p-1 fw-bold pe-2" style="text-align: right;">{{ itemToPrint.no_reff_transfer || '-' }}</td>
-              <td class="fw-bold p-1 ps-4">Timestamp</td>
-              <td class="p-1 pe-2" style="text-align: right;">{{ formatDateTime(itemToPrint.created_at) }}</td>
-            </tr>
-          </table>
-
-          <div class="text-dark" style="font-size: 10pt; border-top: 1px solid #dee2e6; padding-top: 15px;">
-            <p class="mb-3 fw-bold">
-              Telah diberikan kas kepada <span class="text-uppercase">{{ itemToPrint.nama_pihak_lawan }}</span> 
-              melalui {{ itemToPrint.metode_pembayaran }} pada tanggal {{ formatDateStr(itemToPrint.tanggal_pembayaran) }} sebesar :
-            </p>
-            <div class="border border-dark text-center py-2 mb-3 fw-bold bg-white" style="font-size: 13pt;">
-              Rp {{ formatNominal(itemToPrint.jumlah_bayar) }}
-            </div>
-            <p class="fst-italic fw-bold mb-4" style="font-size: 10pt;">
-              Terbilang : {{ formatTerbilang(itemToPrint.jumlah_bayar) }}
-            </p>
-            <div class="fw-bold mb-1" style="font-size: 10pt;">Untuk Tujuan Pembayaran</div>
-            <div class="border border-dark p-2 mb-5 bg-white" style="font-size: 10pt; min-height: 45px;">
-              {{ itemToPrint.keterangan }}
-            </div>
-          </div>
-
-          <table class="w-100 text-center text-dark" style="font-size: 10pt;">
-            <tr>
-              <td width="40%"></td>
-              <td width="30%" class="fw-bold">Bendahara</td>
-              <td width="30%" class="fw-bold">Penerima</td>
-            </tr>
-            <tr>
-              <td style="height: 80px;"></td>
-              <td></td>
-              <td></td>
-            </tr>
-            <tr>
-              <td class="text-start align-bottom" style="font-size: 9pt;">
-                <div class="mb-1">
-                  <span class="fw-bold d-inline-block" style="width: 70px;">Tgl. Cetak</span> 
-                  : {{ formatDateTime(new Date().toISOString()) }}
-                </div>
-                <i style="font-size: 8pt;">*) Bukti dinyatakan sah apabila telah di cap dan di tandatangani</i>
-              </td>
-              <td class="fw-bold">{{ itemToPrint.created_by }}</td>
-              <td class="fw-bold">{{ itemToPrint.nama_pihak_lawan }}</td>
-            </tr>
-          </table>
-        </template>
-
-        <!-- LAYOUT 2: BUKTI JURNAL INTERNAL (JU-INTERN BKK) -->
+        <!-- LAYOUT 1: BUKTI JURNAL INTERNAL PIUTANG -->
         <template v-if="printMode === 'jurnal'">
           <table class="w-100 table-print border-dark mb-3">
             <tr>
@@ -209,12 +124,17 @@
                     <h5 class="mb-0 fw-bold text-dark text-uppercase" style="font-size: 11pt;">{{ company.nama || 'NAMA INSTANSI' }}</h5>
                     <div v-if="company.sub_nama" style="font-size: 8pt; font-weight: bold; margin-bottom: 2px;">{{ company.sub_nama }}</div>
                     <div style="font-size: 8pt; margin-bottom: 2px;">{{ company.alamat || 'Alamat Instansi' }}</div>
+                    <div style="font-size: 8pt;" v-if="company.telepon || company.email">
+                      <span v-if="company.telepon">Telp: {{ company.telepon }}</span>
+                      <span v-if="company.telepon && company.email"> | </span>
+                      <span v-if="company.email">Email: {{ company.email }}</span>
+                    </div>
                   </div>
                 </div>
               </td>
               <td width="30%" class="text-center align-middle bg-light">
                 <h4 class="mb-0 fw-bold text-dark tracking-wide" style="font-size: 13pt;">
-                  BKK-INTERN
+                  PIUTANG
                 </h4>
               </td>
             </tr>
@@ -225,17 +145,17 @@
               <td width="15%" class="fw-bold p-1 px-2">No Bukti</td>
               <td width="35%" class="fw-bold p-1 px-2 pe-2" style="text-align: right;">{{ itemToPrint.no_bukti_internal }}</td>
               <td width="15%" class="fw-bold p-1 px-2">Tanggal</td>
-              <td width="35%" class="p-1 px-2 fw-bold pe-2" style="text-align: right;">{{ formatDateStr(itemToPrint.tanggal_pembayaran) }}</td>
+              <td width="35%" class="p-1 px-2 fw-bold pe-2" style="text-align: right;">{{ formatDateStr(itemToPrint.tanggal_tagihan) }}</td>
             </tr>
             <tr>
-              <td class="fw-bold p-1 px-2">Dibuat Oleh</td>
-              <td class="p-1 px-2 pe-2" style="text-align: right;">{{ itemToPrint.created_by }}</td>
+              <td class="fw-bold p-1 px-2">Bukti Eksternal</td>
+              <td class="p-1 px-2 pe-2" style="text-align: right;">{{ itemToPrint.nomor_tagihan || '-' }}</td>
               <td class="fw-bold p-1 px-2">Timestamp</td>
               <td class="p-1 px-2 pe-2" style="text-align: right;">{{ formatDateTime(itemToPrint.created_at) }}</td>
             </tr>
             <tr>
-              <td class="fw-bold p-1 px-2">Pihak Terkait</td>
-              <td class="p-1 px-2 pe-2" style="text-align: right;">{{ itemToPrint.nama_pihak_lawan }}</td>
+              <td class="fw-bold p-1 px-2">Dibuat Oleh</td>
+              <td class="p-1 px-2 pe-2" style="text-align: right;">{{ itemToPrint.created_by }}</td>
               <td class="fw-bold p-1 px-2">Dicetak Oleh</td>
               <td class="p-1 px-2 pe-2" style="text-align: right;">{{ currentUser?.nama || 'System' }}</td>
             </tr>
@@ -260,15 +180,23 @@
                 <td class="text-center p-1">{{ Number(idx) + 1 }}</td>
                 <td class="text-center p-1 fw-bold">{{ jurnal.coa_saldo }}</td>
                 <td class="p-1 px-2">{{ jurnal.nama_akun }}</td>
-                <td class="p-1 px-2 text-end"><div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(jurnal.debet) }}</span></div></td>
-                <td class="p-1 px-2 text-end"><div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(jurnal.kredit) }}</span></div></td>
+                <td class="p-1 px-2 text-end">
+                  <div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(jurnal.debet) }}</span></div>
+                </td>
+                <td class="p-1 px-2 text-end">
+                  <div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(jurnal.kredit) }}</span></div>
+                </td>
               </tr>
             </tbody>
             <tfoot class="fw-bold bg-light">
               <tr>
                 <td colspan="3" class="text-center p-1">Total Balance:</td>
-                <td class="p-1 px-2 text-end"><div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(itemToPrint.totalBalanceD) }}</span></div></td>
-                <td class="p-1 px-2 text-end"><div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(itemToPrint.totalBalanceK) }}</span></div></td>
+                <td class="p-1 px-2 text-end">
+                  <div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(itemToPrint.totalBalanceD) }}</span></div>
+                </td>
+                <td class="p-1 px-2 text-end">
+                  <div class="d-flex justify-content-between"><span>Rp</span> <span>{{ formatNominal(itemToPrint.totalBalanceK) }}</span></div>
+                </td>
               </tr>
             </tfoot>
           </table>
@@ -291,17 +219,110 @@
             </div>
           </div>
         </template>
+
+        <!-- LAYOUT 2: INVOICE KELUAR (EKSTERNAL) -->
+        <template v-if="printMode === 'invoice'">
+          <table class="w-100 table-print border-dark mb-4">
+            <tr>
+              <td width="75%" class="p-2 align-middle print-bg-gray">
+                <div class="d-flex align-items-center">
+                  <img v-if="company.logo_url" :src="company.logo_url" alt="Logo" style="max-height: 55px; margin-right: 15px;">
+                  <div>
+                    <h5 class="mb-0 fw-bold text-dark text-uppercase" style="font-size: 12pt;">{{ company.nama || 'NAMA INSTANSI' }}</h5>
+                    <div v-if="company.sub_nama" style="font-size: 9pt; font-weight: bold; margin-bottom: 2px;">{{ company.sub_nama }}</div>
+                    <div style="font-size: 9pt;" v-if="company.alamat || company.email">
+                      <span v-if="company.alamat">{{ company.alamat }}</span>
+                      <span v-if="company.alamat && company.email"> | </span>
+                      <span v-if="company.email">{{ company.email }}</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td width="25%" class="text-center align-middle print-bg-gray fw-bold" style="font-size: 18pt;">
+                INVOICE
+              </td>
+            </tr>
+          </table>
+
+          <table class="w-100 mb-4 text-dark" style="font-size: 9pt;">
+            <tr>
+              <td width="15%" class="fw-bold p-1">No. Invoice</td>
+              <td width="35%" class="p-1 fw-bold pe-2" style="text-align: right;">{{ itemToPrint.nomor_tagihan || itemToPrint.no_bukti_internal }}</td>
+              <td width="15%" class="fw-bold p-1 ps-4">Tanggal</td>
+              <td width="35%" class="p-1 fw-bold pe-2" style="text-align: right;">{{ formatDateStr(itemToPrint.tanggal_tagihan) }}</td>
+            </tr>
+            <tr>
+              <td class="fw-bold p-1">No. Internal</td>
+              <td class="p-1 fw-bold pe-2" style="text-align: right;">{{ itemToPrint.no_bukti_internal }}</td>
+              <td class="fw-bold p-1 ps-4">Jatuh Tempo</td>
+              <td class="p-1 fw-bold text-danger pe-2" style="text-align: right;">{{ formatDateStr(itemToPrint.jatuh_tempo) }}</td>
+            </tr>
+            <tr>
+              <td class="fw-bold p-1">Kepada Yth.</td>
+              <td class="p-1 fw-bold pe-2 text-uppercase" style="text-align: right;">{{ itemToPrint.nama_pihak_lawan }}</td>
+              <td class="fw-bold p-1 ps-4">Dibuat Oleh</td>
+              <td class="p-1 pe-2" style="text-align: right;">{{ itemToPrint.created_by }}</td>
+            </tr>
+          </table>
+
+          <div class="text-dark" style="font-size: 10pt; border-top: 1px solid #dee2e6; padding-top: 15px;">
+            <p class="mb-3 fw-bold">
+              Telah diterbitkan tagihan kepada <span class="text-uppercase">{{ itemToPrint.nama_pihak_lawan }}</span> 
+              pada tanggal {{ formatDateStr(itemToPrint.tanggal_tagihan) }} dengan batas jatuh tempo pada 
+              <span class="text-danger">{{ formatDateStr(itemToPrint.jatuh_tempo) }}</span> sebesar :
+            </p>
+
+            <div class="border border-dark text-center py-2 mb-3 fw-bold bg-white" style="font-size: 13pt;">
+              Rp {{ formatNominal(itemToPrint.jumlah_tagihan) }}
+            </div>
+
+            <p class="fst-italic fw-bold mb-4" style="font-size: 10pt;">
+              Terbilang : {{ formatTerbilang(itemToPrint.jumlah_tagihan) }}
+            </p>
+
+            <div class="fw-bold mb-1" style="font-size: 10pt;">Untuk Tujuan Pembayaran</div>
+            <div class="border border-dark p-2 mb-5 bg-white" style="font-size: 10pt; min-height: 45px;">
+              {{ itemToPrint.keterangan }}
+            </div>
+          </div>
+
+          <table class="w-100 text-center text-dark" style="font-size: 10pt;">
+            <tr>
+              <td width="40%"></td>
+              <td width="30%" class="fw-bold">Hormat Kami,</td>
+              <td width="30%" class="fw-bold">Pihak Klien / Tertagih</td>
+            </tr>
+            <tr>
+              <td style="height: 80px;"></td>
+              <td></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td class="text-start align-bottom" style="font-size: 9pt;">
+                <div class="mb-1">
+                  <span class="fw-bold d-inline-block" style="width: 70px;">Tgl. Cetak</span> 
+                  : {{ formatDateTime(new Date().toISOString()) }}
+                </div>
+                <i style="font-size: 8pt;">*) Mohon lakukan pembayaran sebelum tanggal jatuh tempo.</i>
+              </td>
+              <td class="fw-bold">{{ company.nama || 'Manajemen' }}</td>
+              <td class="fw-bold">{{ itemToPrint.nama_pihak_lawan }}</td>
+            </tr>
+          </table>
+        </template>
+
       </div>
     </div>
+    <!-- END AREA CETAK -->
 
-    <!-- MODAL FORM INPUT PEMBAYARAN -->
+    <!-- MODAL FORM INPUT PIUTANG -->
     <div v-if="isModalOpen" class="custom-modal-overlay screen-only">
       <div v-if="activeDropdown" class="position-fixed top-0 start-0 w-100 h-100 overlay-dropdown" @click="closeAllDropdowns"></div>
 
       <div class="custom-modal-card card border-0 shadow-lg rounded-0 overflow-hidden" style="max-width: 1000px; width: 95%; z-index: 1050;">
         <div class="card-header bg-white border-bottom px-4 py-3 d-flex justify-content-between align-items-center flex-shrink-0">
           <h5 class="fw-bold mb-0 text-dark">
-            <i class="bi bi-wallet2 text-primary me-2"></i> Form Pembayaran Hutang
+            <i class="bi bi-file-earmark-arrow-up text-primary me-2"></i> Form Tagihan Piutang & Jurnal
           </h5>
           <button type="button" class="btn-close" @click="closeModal"></button>
         </div>
@@ -309,95 +330,89 @@
         <div class="card-body p-4 modal-body-scroll custom-scrollbar bg-light bg-opacity-50">
           
           <div class="bg-white p-3 rounded-0 border shadow-sm mb-4">
-            <h6 class="fw-bold mb-3 border-bottom pb-2">Pilih Tagihan (Invoice)</h6>
+            <h6 class="fw-bold mb-3 border-bottom pb-2"><i class="bi bi-file-earmark-text me-2"></i>Data Dokumen</h6>
             <div class="row g-3">
-              <div class="col-12">
-                <label class="form-label small fw-bold">Daftar Tagihan Belum Lunas <span class="text-danger">*</span></label>
-                <select class="form-select border-primary rounded-0" v-model="form.tagihan_id" @change="handleTagihanSelect">
-                  <option value="" disabled>-- Pilih Dokumen Tagihan --</option>
-                  <option v-for="tgh in tagihanTersedia" :key="tgh.id" :value="tgh.id">
-                    {{ tgh.no_bukti_internal }} | Inv: {{ tgh.nomor_tagihan || '-' }} | Sisa: Rp {{ formatNominal(tgh.sisa_tagihan) }} | {{ tgh.nama_pihak_lawan }}
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Referensi Master Piutang <span class="text-danger">*</span></label>
+                <select class="form-select rounded-0" v-model="form.master_piutang_id">
+                  <option value="" disabled>-- Pilih Dokumen Perjanjian --</option>
+                  <option v-for="mp in masterPiutangs" :key="mp.id" :value="mp.id">
+                    {{ mp.nomor_perjanjian }} - {{ mp.pihak_lawan?.nama }}
                   </option>
                 </select>
               </div>
-            </div>
-          </div>
-
-          <div v-if="form.tagihan_id" class="bg-white p-3 rounded-0 border shadow-sm mb-4">
-            <h6 class="fw-bold mb-3 border-bottom pb-2">Data Dokumen Kas Keluar (BKK)</h6>
-            <div class="row g-3">
-              <div class="col-md-4">
-                <label class="form-label small fw-bold">No. BKK Internal</label>
-                <input type="text" class="form-control fw-bold bg-light rounded-0" v-model="form.no_bukti_internal" readonly>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold">Nomor Invoice Keluar / Internal</label>
+                <!-- OTOMATIS & READ ONLY -->
+                <input type="text" class="form-control fw-bold rounded-0 bg-light" v-model="form.no_bukti_internal" readonly>
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Tanggal Pembayaran <span class="text-danger">*</span></label>
-                <input type="date" class="form-control rounded-0" v-model="form.tanggal_pembayaran">
+                <label class="form-label small fw-bold">Tanggal Tagihan <span class="text-danger">*</span></label>
+                <input type="date" class="form-control rounded-0" v-model="form.tanggal_tagihan">
               </div>
               <div class="col-md-4">
-                <label class="form-label small fw-bold">Metode Pembayaran <span class="text-danger">*</span></label>
-                <select class="form-select rounded-0" v-model="form.metode_pembayaran">
-                  <option value="Transfer Bank">Transfer Bank</option>
-                  <option value="Tunai (Cash)">Tunai (Cash)</option>
-                  <option value="QRIS / E-Wallet">QRIS / E-Wallet</option>
-                  <option value="Giro / Cek">Giro / Cek</option>
-                </select>
+                <label class="form-label small fw-bold text-danger">Jatuh Tempo <span class="text-danger">*</span></label>
+                <input type="date" class="form-control border-danger rounded-0" v-model="form.jatuh_tempo">
               </div>
-
-              <div class="col-md-5">
-                <label class="form-label small fw-bold">Pihak Tertagih / Vendor</label>
-                <input type="text" class="form-control bg-light rounded-0" :value="selectedTagihanData?.nama_pihak_lawan" readonly>
-              </div>
-              <div class="col-md-7">
-                <label class="form-label small fw-bold">No. Reff Transfer Bank</label>
-                <input type="text" class="form-control rounded-0" v-model="form.no_reff_transfer" placeholder="Opsional (Bukti TF)..." :disabled="form.metode_pembayaran === 'Tunai (Cash)'">
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">Total Nilai Piutang <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text fw-bold rounded-0">Rp</span>
+                  <input type="text" class="form-control fw-bold text-primary rounded-0" 
+                         :value="formatInputRupiah(form.jumlah_tagihan)" 
+                         @input="handleMainNominalInput" 
+                         placeholder="0">
+                </div>
               </div>
               <div class="col-12">
-                <label class="form-label small fw-bold">Keterangan / Berita Pembayaran <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-0" v-model="form.keterangan" placeholder="Contoh: Pembayaran Termin 1...">
+                <label class="form-label small fw-bold">Uraian / Tujuan Tagihan <span class="text-danger">*</span></label>
+                <input type="text" class="form-control rounded-0" v-model="form.keterangan" placeholder="Keterangan untuk invoice ini...">
               </div>
             </div>
           </div>
 
-          <div v-if="form.tagihan_id" class="bg-white p-3 rounded-0 border shadow-sm position-relative" style="z-index: 20;">
+          <div class="bg-white p-3 rounded-0 border shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-              <h6 class="fw-bold mb-0"><i class="bi bi-calculator me-2"></i>Jurnal Pembayaran (Multi-Baris)</h6>
+              <h6 class="fw-bold mb-0"><i class="bi bi-calculator me-2"></i>Pemetaan Jurnal (Double Entry)</h6>
               <span class="badge rounded-0" :class="isBalanced ? 'bg-success' : 'bg-danger'">
                 {{ isBalanced ? 'BALANCE' : 'TIDAK BALANCE' }}
               </span>
             </div>
 
             <div class="p-3 bg-primary bg-opacity-10 border border-primary rounded-0 mb-3 position-relative">
-              <div class="row align-items-center">
+              <div class="row align-items-end">
                 <div class="col-md-6">
-                  <label class="form-label small fw-bold text-primary">Akun Hutang (Otomatis DEBET)</label>
-                  <div class="form-control border-primary bg-white text-dark fw-bold text-truncate rounded-0">
-                    {{ getCoaLabel(selectedTagihanData?.coa_kredit) }}
-                  </div>
-                </div>
-                <div class="col-md-6 text-end">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <div class="text-start">
-                      <small class="text-muted fw-bold d-block mb-1">Sisa Tagihan Maksimal:</small>
-                      <h6 class="mb-0 fw-bold text-dark">Rp {{ formatNominal(selectedTagihanData?.sisa_tagihan) }}</h6>
+                  <label class="form-label small fw-bold text-primary">Akun Piutang (Hak Tagih Utama) <span class="text-danger">*</span></label>
+                  <div class="position-relative dropdown-container" :style="{ zIndex: activeDropdown === 'main-coa' ? 1050 : 1 }">
+                    <div class="form-control border-primary bg-white d-flex justify-content-between align-items-center cursor-pointer rounded-0"
+                         @click="toggleDropdown('main-coa')">
+                      <span class="text-truncate" :class="{'text-muted': !form.coa_piutang}">{{ getCoaLabel(form.coa_piutang) }}</span>
+                      <i class="bi bi-search small text-primary"></i>
                     </div>
-                    <div class="text-end" style="width: 230px;">
-                      <label class="form-label small fw-bold text-primary mb-1">Nominal Dilunasi <span class="text-danger">*</span></label>
-                      <div class="input-group input-group-lg shadow-sm">
-                        <span class="input-group-text bg-white border-primary fw-bold rounded-0">Rp</span>
-                        <input type="text" class="form-control border-primary text-end fw-bold text-primary rounded-0" 
-                               :value="formatInputRupiah(form.jumlah_bayar)" 
-                               @input="handleNominalInput" 
-                               placeholder="0">
+
+                    <div v-if="activeDropdown === 'main-coa'" class="position-absolute w-100 bg-white border border-primary rounded-0 shadow mt-1 p-2 custom-dropdown-menu">
+                      <input type="text" class="form-control border-primary mb-2 sticky-top rounded-0" placeholder="Cari COA Piutang..." v-model="searchQuery" @click.stop>
+                      <div class="list-group list-group-flush">
+                        <button v-for="coa in filteredCOA" :key="coa.id"
+                                class="list-group-item list-group-item-action p-2 small text-start border-bottom"
+                                @click="selectMainCoa(coa.coa_code)">
+                          <span class="fw-bold text-primary">{{ coa.coa_code }}</span> - {{ coa.nama }}
+                        </button>
                       </div>
                     </div>
                   </div>
+                </div>
+                <div class="col-md-6 text-end">
+                  <small class="text-muted fw-bold d-block mb-1">Posisi & Nominal:</small>
+                  <h5 class="mb-0 fw-bold text-primary">
+                    (DEBET) Rp {{ formatNominal(Number(form.jumlah_tagihan)) }}
+                  </h5>
                 </div>
               </div>
             </div>
 
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <label class="form-label small fw-bold text-danger mb-0">Rincian Akun Lawan (Kas / Bank / Biaya Admin)</label>
+              <label class="form-label small fw-bold text-danger mb-0">Rincian Akun Lawan (Pendapatan / Pajak / Diskon)</label>
               <button class="btn btn-sm btn-outline-danger fw-bold rounded-0" @click="addJurnalRow">
                 <i class="bi bi-plus-circle me-1"></i> Tambah Baris
               </button>
@@ -425,17 +440,15 @@
                           </span>
                           <i class="bi bi-search small text-muted"></i>
                         </div>
-
                         <div v-if="activeDropdown === `row-${idx}-coa`" class="position-absolute bg-white border rounded-0 shadow mt-1 p-2 custom-dropdown-menu" style="min-width: 300px;">
-                          <input type="text" class="form-control form-control-sm mb-2 sticky-top rounded-0" placeholder="Ketik Kode / Nama COA..." v-model="searchQuery" @click.stop>
+                          <input type="text" class="form-control form-control-sm mb-2 sticky-top rounded-0" placeholder="Cari COA..." v-model="searchQuery" @click.stop>
                           <div class="list-group list-group-flush">
                             <button v-for="coa in filteredCOA" :key="coa.id"
                                     class="list-group-item list-group-item-action p-2 small text-start border-bottom"
                                     @click="selectRowCoa(Number(idx), coa.coa_code)">
-                              <span class="fw-bold text-primary">{{ coa.coa_code }}</span> <br>
+                              <span class="fw-bold text-danger">{{ coa.coa_code }}</span> <br>
                               <span class="text-dark">{{ coa.nama }}</span>
                             </button>
-                            <div v-if="filteredCOA.length === 0" class="text-muted small text-center p-2">COA tidak ditemukan</div>
                           </div>
                         </div>
                       </div>
@@ -449,9 +462,8 @@
                           </span>
                           <i class="bi bi-search small text-muted"></i>
                         </div>
-
                         <div v-if="activeDropdown === `row-${idx}-anggaran`" class="position-absolute bg-white border rounded-0 shadow mt-1 p-2 custom-dropdown-menu" style="min-width: 280px;">
-                          <input type="text" class="form-control form-control-sm mb-2 sticky-top rounded-0" placeholder="Cari Kode / Nama Pos..." v-model="searchQuery" @click.stop>
+                          <input type="text" class="form-control form-control-sm mb-2 sticky-top rounded-0" placeholder="Cari Pos..." v-model="searchQuery" @click.stop>
                           <div class="list-group list-group-flush">
                             <button class="list-group-item list-group-item-action p-2 small text-start border-bottom text-muted fst-italic" @click="selectRowAnggaran(Number(idx), '')">
                               -- Tanpa Anggaran --
@@ -512,8 +524,8 @@
         
         <div class="card-footer bg-white border-top text-end py-3 px-4 flex-shrink-0" style="z-index: 1040;">
           <button class="btn btn-light border fw-bold px-4 me-2 rounded-0" @click="closeModal">Batal</button>
-          <button class="btn btn-primary fw-bold px-4 rounded-0" @click="saveData" :disabled="!isFormValid">
-            <i class="bi bi-save me-1"></i> Simpan Pembayaran
+          <button class="btn btn-primary fw-bold px-4 rounded-0" @click="saveData" :disabled="!isBalanced || selisih !== 0">
+            <i class="bi bi-save me-1"></i> Simpan & Posting
           </button>
         </div>
       </div>
@@ -527,8 +539,8 @@ import { supabase } from '../utils/supabase'
 import { AppAlert } from '../utils/alert'
 import Swal from 'sweetalert2'
 
-const pembayarans = ref<any[]>([])
-const tagihanTersedia = ref<any[]>([])
+const tagihans = ref<any[]>([])
+const masterPiutangs = ref<any[]>([])
 const listCOA = ref<any[]>([])
 const listAnggaran = ref<any[]>([])
 const company = ref<any>({}) 
@@ -536,20 +548,22 @@ const company = ref<any>({})
 const isModalOpen = ref(false)
 const currentUser = ref<any>(null)
 const itemToPrint = ref<any>(null)
-const printMode = ref<'jurnal' | 'kuitansi'>('kuitansi')
+
+const printMode = ref<'jurnal' | 'invoice'>('jurnal')
 
 const activeDropdown = ref<string | null>(null)
-const searchQuery = ref('')
+const searchQuery = ref('') // Untuk dropdown COA
 
 const form = ref<any>({
-  tagihan_id: '',
-  no_bukti_internal: '',
-  tanggal_pembayaran: '',
-  metode_pembayaran: 'Transfer Bank',
-  no_reff_transfer: '',
-  jumlah_bayar: 0,
-  keterangan: '',
-  jurnal_lawan: [{ coa_code: '', pos_anggaran_id: '', posisi: 'K', nominal: '' }] 
+  master_piutang_id: '', 
+  no_bukti_internal: '', // Penambahan field no_bukti_internal
+  nomor_tagihan: '', 
+  tanggal_tagihan: '', 
+  jatuh_tempo: '', 
+  jumlah_tagihan: '', 
+  keterangan: '', 
+  coa_piutang: '',
+  jurnal_lawan: [{ coa_code: '', pos_anggaran_id: '', posisi: 'K', nominal: '' }]
 })
 
 // FITUR FILTER & SORTING & PAGINATION UNTUK TABEL
@@ -564,14 +578,13 @@ watch(searchTableQuery, () => { currentPage.value = 1 })
 watch(searchColumn, () => { currentPage.value = 1 })
 
 const filteredData = computed(() => {
-  if (!searchTableQuery.value) return pembayarans.value
+  if (!searchTableQuery.value) return tagihans.value
   const q = searchTableQuery.value.toLowerCase()
-  return pembayarans.value.filter(item => {
+  return tagihans.value.filter(item => {
     if (searchColumn.value === 'semua') {
       return (item.no_bukti_internal?.toLowerCase().includes(q) ||
-              item.nama_pihak_lawan?.toLowerCase().includes(q) ||
-              item.created_by?.toLowerCase().includes(q) ||
-              item.no_reff_transfer?.toLowerCase().includes(q)) // TAMBAHAN NO REFF
+              item.nomor_tagihan?.toLowerCase().includes(q) ||
+              item.created_by?.toLowerCase().includes(q))
     } else {
       return item[searchColumn.value]?.toString().toLowerCase().includes(q)
     }
@@ -629,10 +642,11 @@ onUnmounted(() => {
 const canCreate = computed(() => currentUser.value?.can_create === true)
 const canDelete = computed(() => currentUser.value?.can_delete === true)
 
-const generateNoBuktiBKK = () => {
+// PENOMORAN SOP TAGIHAN PIUTANG [TGP]-[YYYYMMDD]-[6 DIGIT UNIK]-[USER ID]
+const generateNoBuktiTGP = () => {
   const now = new Date()
   const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g, '')
-  const prefix = 'BKK' 
+  const prefix = 'TGP' 
   
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
   let uniqCode = ''
@@ -649,18 +663,22 @@ const generateNoBuktiBKK = () => {
   return `${prefix}-${yyyymmdd}-${uniqCode}-${userId}`
 }
 
-const selectedTagihanData = computed(() => {
-  return tagihanTersedia.value.find(t => t.id === form.value.tagihan_id) || null
-})
+const generateUUID = () => {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8)
+    return v.toString(16)
+  })
+}
 
+// LOGIKA BALANCE PIUTANG DIBALIK (PIUTANG DI DEBET)
 const totalDebet = computed(() => {
-  let d = Number(form.value.jumlah_bayar) || 0 
+  let d = Number(form.value.jumlah_tagihan) || 0 
   form.value.jurnal_lawan.forEach((row: any) => {
     if (row.posisi === 'D') d += Number(row.nominal) || 0 
   })
   return d
 })
-
 const totalKredit = computed(() => {
   let k = 0
   form.value.jurnal_lawan.forEach((row: any) => {
@@ -668,114 +686,61 @@ const totalKredit = computed(() => {
   })
   return k
 })
-
 const selisih = computed(() => Math.abs(totalDebet.value - totalKredit.value))
 const isBalanced = computed(() => totalDebet.value > 0 && totalDebet.value === totalKredit.value)
 
-const isFormValid = computed(() => {
-  const nominal = Number(form.value.jumlah_bayar)
-  const maxSisa = Number(selectedTagihanData.value?.sisa_tagihan || 0)
-  const hasEmptyCoa = form.value.jurnal_lawan.some((r: any) => !r.coa_code)
-
-  return form.value.tagihan_id && form.value.tanggal_pembayaran && 
-         form.value.keterangan && 
-         nominal > 0 && nominal <= maxSisa && 
-         !hasEmptyCoa && isBalanced.value
-})
-
-const handleTagihanSelect = () => {
-  if (selectedTagihanData.value) {
-    form.value.jumlah_bayar = selectedTagihanData.value.sisa_tagihan
-    form.value.keterangan = `Pembayaran tagihan ${selectedTagihanData.value.nomor_tagihan || selectedTagihanData.value.no_bukti_internal}`
-  }
-}
-
-const handleNominalInput = (e: Event) => {
+const handleMainNominalInput = (e: Event) => {
   const target = e.target as HTMLInputElement | null
-  if (target) {
-    let val = parseRupiah(target.value)
-    const maxSisa = selectedTagihanData.value?.sisa_tagihan || 0
-    if (val > maxSisa) val = maxSisa 
-    form.value.jumlah_bayar = val
-  }
+  if (target) form.value.jumlah_tagihan = parseRupiah(target.value)
 }
-
 const handleRowNominalInput = (idx: number, e: Event) => {
   const target = e.target as HTMLInputElement | null
-  if (target) {
-    form.value.jurnal_lawan[idx].nominal = parseRupiah(target.value)
-  }
+  if (target) form.value.jurnal_lawan[idx].nominal = parseRupiah(target.value)
 }
 
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement
   if (!target.closest('.dropdown-container')) closeAllDropdowns()
 }
-
 const toggleDropdown = (id: string) => {
-  if (activeDropdown.value === id) {
-    closeAllDropdowns()
-  } else {
-    activeDropdown.value = id
-    searchQuery.value = ''
-    nextTick(() => {
-      const input = document.querySelector('.custom-dropdown-menu input') as HTMLInputElement
-      if (input) input.focus()
-    })
+  if (activeDropdown.value === id) closeAllDropdowns()
+  else {
+    activeDropdown.value = id; searchQuery.value = ''
+    nextTick(() => { const input = document.querySelector('.custom-dropdown-menu input') as HTMLInputElement; if (input) input.focus() })
   }
 }
-
-const closeAllDropdowns = () => {
-  activeDropdown.value = null
-  searchQuery.value = ''
-}
+const closeAllDropdowns = () => { activeDropdown.value = null; searchQuery.value = '' }
 
 const filteredCOA = computed(() => {
   if (!searchQuery.value) return listCOA.value
   const q = searchQuery.value.toLowerCase()
   return listCOA.value.filter(c => c.coa_code.toLowerCase().includes(q) || c.nama.toLowerCase().includes(q))
 })
-
 const filteredAnggaran = computed(() => {
   if (!searchQuery.value) return listAnggaran.value
   const q = searchQuery.value.toLowerCase()
-  return listAnggaran.value.filter(a => 
-    (a.kode_pos || '').toLowerCase().includes(q) || 
-    (a.nama_pos || '').toLowerCase().includes(q)
-  )
+  return listAnggaran.value.filter(a => (a.kode_pos || '').toLowerCase().includes(q) || (a.nama_pos || '').toLowerCase().includes(q))
 })
 
-const getCoaLabel = (code: string | undefined) => {
+const getCoaLabel = (code: string) => {
   if (!code) return 'Pilih COA...'
   const c = listCOA.value.find(x => x.coa_code === code)
   return c ? `${c.coa_code} - ${c.nama}` : code
 }
-
 const getAnggaranLabel = (id: string) => {
   if (!id) return '-- Tanpa Anggaran --'
   const a = listAnggaran.value.find(x => x.id === id)
   return a ? `${a.kode_pos} - ${a.nama_pos}` : '-- Tanpa Anggaran --'
 }
 
-const selectRowCoa = (idx: number, code: string) => {
-  form.value.jurnal_lawan[idx].coa_code = code
-  closeAllDropdowns()
-}
+const selectMainCoa = (code: string) => { form.value.coa_piutang = code; closeAllDropdowns() }
+const selectRowCoa = (idx: number, code: string) => { form.value.jurnal_lawan[idx].coa_code = code; closeAllDropdowns() }
+const selectRowAnggaran = (idx: number, id: string) => { form.value.jurnal_lawan[idx].pos_anggaran_id = id; closeAllDropdowns() }
 
-const selectRowAnggaran = (idx: number, id: string) => {
-  form.value.jurnal_lawan[idx].pos_anggaran_id = id
-  closeAllDropdowns()
-}
+const addJurnalRow = () => { form.value.jurnal_lawan.push({ coa_code: '', pos_anggaran_id: '', posisi: 'K', nominal: '' }) }
+const removeJurnalRow = (idx: number) => { if (form.value.jurnal_lawan.length > 1) form.value.jurnal_lawan.splice(idx, 1) }
 
-const addJurnalRow = () => {
-  form.value.jurnal_lawan.push({ coa_code: '', pos_anggaran_id: '', posisi: 'K', nominal: '' })
-}
-const removeJurnalRow = (idx: number) => {
-  if (form.value.jurnal_lawan.length > 1) {
-    form.value.jurnal_lawan.splice(idx, 1)
-  }
-}
-
+// FORMATTERS
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '-'
   return new Date(dateStr).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -790,6 +755,10 @@ const formatDateTime = (dateStr: string) => {
   const d = new Date(dateStr)
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
+const formatRupiah = (angka: number) => {
+  if (!angka) return 'Rp 0'
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka)
+}
 const formatNominal = (angka: number) => {
   if (!angka) return '0'
   return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(angka)
@@ -803,7 +772,6 @@ const formatInputRupiah = (val: number | string) => {
   if (!val || val === 0 || val === '0') return ''
   return new Intl.NumberFormat('id-ID').format(Number(val))
 }
-
 const terbilang = (angka: number): string => {
   const bilangan = ['','Satu','Dua','Tiga','Empat','Lima','Enam','Tujuh','Delapan','Sembilan','Sepuluh','Sebelas']
   if (angka < 12) return bilangan[angka]
@@ -831,213 +799,175 @@ const fetchCompanyProfile = async () => {
 
 const fetchDropdowns = async () => {
   try {
-    // Tarik COA
-    const { data: coaData } = await supabase.from('coas').select('*').eq('sifat', 'D').order('coa_code', { ascending: true })
+    const { data: mpData } = await supabase.from('master_piutang').select('id, nomor_perjanjian, pihak_lawan(id, nama)')
+    masterPiutangs.value = mpData || []
+
+    let coaQuery = supabase.from('coas').select('*').order('coa_code', { ascending: true })
+    if (company.value?.coa_laba_rugi_berjalan) coaQuery = coaQuery.neq('coa_code', company.value.coa_laba_rugi_berjalan)
+    const { data: coaData } = await coaQuery
     listCOA.value = coaData || []
 
-    // Tarik Anggaran
     const { data: angData } = await supabase.from('anggaran').select('*').eq('sifat', 'D')
     listAnggaran.value = angData || []
-
-    // Tarik Tagihan yang masih memiliki sisa hutang
-    const { data: tagihanData } = await supabase
-      .from('tagihan_hutang')
-      .select(`id, no_bukti_internal, nomor_tagihan, jumlah_tagihan, coa_kredit, master_hutang(pihak_lawan(id, nama)), pembayaran_hutang(jumlah_bayar)`)
-      
-    if (tagihanData) {
-      const parsed = tagihanData.map((t: any) => {
-        const totalDibayar = t.pembayaran_hutang ? t.pembayaran_hutang.reduce((sum: number, p: any) => sum + Number(p.jumlah_bayar), 0) : 0
-        const sisa = Number(t.jumlah_tagihan) - totalDibayar
-        return {
-          ...t,
-          nama_pihak_lawan: t.master_hutang?.pihak_lawan?.nama || 'Unknown',
-          id_pihak_lawan: t.master_hutang?.pihak_lawan?.id || null,
-          sisa_tagihan: sisa
-        }
-      }).filter(t => t.sisa_tagihan > 0)
-      
-      tagihanTersedia.value = parsed
-    }
   } catch (err) {}
 }
 
 const fetchData = async () => {
   AppAlert.loading('Memuat data...')
   try {
-    // Load tabel utama dengan limit 1000 baris agar tidak lemot
-    const { data, error } = await supabase
-      .from('pembayaran_hutang')
-      .select(`*, tagihan_hutang(nomor_tagihan, master_hutang(pihak_lawan(nama)))`)
-      .order('created_at', { ascending: false })
-      .limit(1000)
-      
+    const { data, error } = await supabase.from('tagihan_piutang')
+      .select(`*, master_piutang (nomor_perjanjian, pihak_lawan(nama))`)
+      .order('created_at', { ascending: false }).limit(1000)
     if (error) throw error
-
-    pembayarans.value = data.map((d: any) => ({
-      ...d,
-      nama_pihak_lawan: d.tagihan_hutang?.master_hutang?.pihak_lawan?.nama || 'Unknown'
-    }))
-    
+    tagihans.value = data || []
     AppAlert.close()
   } catch (err) { AppAlert.error('Gagal memuat data', err) }
 }
 
 const openAddModal = () => {
   if (!canCreate.value) return
+  
+  const newKodeInternal = generateNoBuktiTGP()
+  
   form.value = { 
-    tagihan_id: '',
-    no_bukti_internal: generateNoBuktiBKK(),
-    tanggal_pembayaran: new Date().toISOString().slice(0,10),
-    metode_pembayaran: 'Transfer Bank',
-    no_reff_transfer: '',
-    jumlah_bayar: 0,
-    keterangan: '',
+    master_piutang_id: '', 
+    no_bukti_internal: newKodeInternal,
+    nomor_tagihan: '', 
+    tanggal_tagihan: new Date().toISOString().slice(0,10), 
+    jatuh_tempo: '', 
+    jumlah_tagihan: '', 
+    keterangan: '', 
+    coa_piutang: '', 
     jurnal_lawan: [{ coa_code: '', pos_anggaran_id: '', posisi: 'K', nominal: '' }] 
   }
   isModalOpen.value = true
 }
 
-const closeModal = () => {
-  isModalOpen.value = false
-  closeAllDropdowns()
-}
+const closeModal = () => { isModalOpen.value = false; closeAllDropdowns() }
 
-// CETAK JURNAL INTERNAL BKK
 const printJurnal = async (item: any) => {
   AppAlert.loading('Mempersiapkan Jurnal Internal...')
   try {
     const { data: trxData, error } = await supabase.from('transaksi').select('*').eq('kwitansi_internal', item.no_bukti_internal).order('debet', { ascending: false }) 
     if (error) throw error
-    
-    let tD = 0, tK = 0
+    let totalD = 0, totalK = 0
     const mappedTrx = trxData.map((t: any) => {
-      tD += Number(t.debet)
-      tK += Number(t.kredit)
+      totalD += Number(t.debet); totalK += Number(t.kredit)
       const matchedCoa = listCOA.value.find(c => c.coa_code === t.coa_saldo)
-      return { ...t, nama_akun: matchedCoa ? matchedCoa.nama : 'Unknown' }
+      return { ...t, nama_akun: matchedCoa ? matchedCoa.nama : 'Unknown Account' }
     })
-
-    itemToPrint.value = { 
-      ...item, 
-      jurnalEntries: mappedTrx,
-      totalBalanceD: tD,
-      totalBalanceK: tK
-    }
-    printMode.value = 'jurnal' 
+    itemToPrint.value = { ...item, jurnalEntries: mappedTrx || [], totalBalanceD: totalD, totalBalanceK: totalK }
+    printMode.value = 'jurnal'
     AppAlert.close()
     await nextTick(); setTimeout(() => window.print(), 400)
-  } catch (err) { AppAlert.error('Gagal memuat jurnal', err) }
+  } catch (err) { AppAlert.error('Gagal', err) }
 }
 
-// CETAK BKK EKSTERNAL (KUITANSI)
-const printKuitansi = async (item: any) => {
-  AppAlert.loading('Mempersiapkan Kuitansi BKK...')
-  itemToPrint.value = item
-  printMode.value = 'kuitansi'
+const printInvoice = async (item: any) => {
+  AppAlert.loading('Mempersiapkan Invoice Keluar...')
+  itemToPrint.value = { ...item, nama_pihak_lawan: item.master_piutang?.pihak_lawan?.nama || 'Klien' }
+  printMode.value = 'invoice'
   AppAlert.close()
   await nextTick(); setTimeout(() => window.print(), 400)
 }
 
 const saveData = async () => {
-  if (!isFormValid.value) return
+  if (!isBalanced.value) { AppAlert.error('Gagal', 'Total Debet dan Kredit harus Balance!'); return }
+  if (!form.value.master_piutang_id || !form.value.tanggal_tagihan || !form.value.coa_piutang || !form.value.jumlah_tagihan) {
+    AppAlert.error('Gagal', 'Lengkapi seluruh kolom utama!'); return
+  }
+  if (form.value.jurnal_lawan.some((row: any) => !row.coa_code)) { AppAlert.error('Gagal', 'Ada Rincian Akun Lawan belum memilih COA.'); return }
 
-  AppAlert.loading('Menyimpan Pembayaran...')
+  AppAlert.loading('Menyimpan Piutang...')
   try {
     const currentUsername = currentUser.value?.nama || currentUser.value?.user_id || 'System'
-    const now = new Date().toISOString()
-    const nominalHutang = Number(form.value.jumlah_bayar)
-    
-    const idPihakLawan = selectedTagihanData.value?.id_pihak_lawan
-    const coaHutang = selectedTagihanData.value?.coa_kredit // Akun hutang yang dulu dikredit, sekarang akan didebet
+    const now = new Date()
+    const internalNoBukti = form.value.no_bukti_internal 
+    const tagihanNominal = Number(form.value.jumlah_tagihan)
+    const hasAnggaran = form.value.jurnal_lawan.some((row: any) => row.pos_anggaran_id !== '')
 
-    // 1. Insert ke tabel pembayaran_hutang
-    const { error: errBayar } = await supabase.from('pembayaran_hutang').insert([{
-      tagihan_hutang_id: form.value.tagihan_id,
-      no_bukti_internal: form.value.no_bukti_internal,
-      tanggal_pembayaran: form.value.tanggal_pembayaran,
-      metode_pembayaran: form.value.metode_pembayaran,
-      no_reff_transfer: form.value.no_reff_transfer || null,
-      jumlah_bayar: nominalHutang,
-      coa_kas: 'MULTI_JURNAL', 
+    const mp = masterPiutangs.value.find(m => m.id === form.value.master_piutang_id)
+    const idPihakLawan = mp?.pihak_lawan?.id || null 
+
+    const payloadTagihan = {
+      id: generateUUID(),
+      no_bukti_internal: internalNoBukti,
+      master_piutang_id: form.value.master_piutang_id,
+      nomor_tagihan: internalNoBukti,
+      tanggal_tagihan: form.value.tanggal_tagihan,
+      jatuh_tempo: form.value.jatuh_tempo,
+      jumlah_tagihan: tagihanNominal,
+      coa_debet: form.value.coa_piutang, 
+      coa_kredit: 'MULTI_JURNAL', 
+      pos_anggaran_id: null, 
+      status_anggaran: hasAnggaran ? 'TERPOTONG' : 'TIDAK_TERKAIT',
       keterangan: form.value.keterangan,
       created_by: currentUsername,
-      created_at: now
-    }])
-    if (errBayar) throw errBayar
+      created_at: now.toISOString()
+    }
 
-    // 2. Insert Double Entry ke tabel transaksi (Buku Besar)
     const payloadJurnal = []
-
-    // Baris 1: DEBET Pelunasan Hutang Utama
+    
+    // Baris 1: Piutang Utama (Otomatis Debet)
     payloadJurnal.push({
-      tanggal_transaksi: form.value.tanggal_pembayaran,
-      kwitansi_internal: form.value.no_bukti_internal,
-      kwitansi_eksternal: selectedTagihanData.value?.nomor_tagihan,
-      jenis_transaksi: 'KAS_KELUAR', 
+      tanggal_transaksi: form.value.tanggal_tagihan,
+      kwitansi_internal: internalNoBukti, 
+      kwitansi_eksternal: internalNoBukti, 
+      jenis_transaksi: 'PIUTANG', 
       keterangan: form.value.keterangan,
-      coa_saldo: coaHutang,
-      pihak_hutang: idPihakLawan,
-      metode_pembayaran: form.value.metode_pembayaran,
-      no_reff_transfer: form.value.no_reff_transfer || null,
-      debet: nominalHutang,
+      coa_saldo: form.value.coa_piutang,
+      pihak_piutang: idPihakLawan, 
+      debet: tagihanNominal, // Piutang Masuk di Debet
       kredit: 0,
       created_by: currentUsername,
-      created_at: now
+      created_at: now.toISOString()
     })
 
-    // Baris 2..N: Akun Lawan Dinamis (Kredit Kas/Bank, Debet Biaya Admin, dll)
+    // Baris 2..N: Akun Lawan (Otomatis Kredit untuk Pendapatan)
     form.value.jurnal_lawan.forEach((row: any) => {
-      if (Number(row.nominal) > 0 && row.coa_code) {
-        payloadJurnal.push({
-          tanggal_transaksi: form.value.tanggal_pembayaran,
-          kwitansi_internal: form.value.no_bukti_internal,
-          kwitansi_eksternal: selectedTagihanData.value?.nomor_tagihan,
-          jenis_transaksi: 'KAS_KELUAR', 
-          keterangan: form.value.keterangan,
-          coa_saldo: row.coa_code,
-          coa_anggaran: row.pos_anggaran_id || null,
-          pihak_hutang: idPihakLawan,
-          metode_pembayaran: form.value.metode_pembayaran,
-          no_reff_transfer: form.value.no_reff_transfer || null,
-          debet: row.posisi === 'D' ? Number(row.nominal) : 0,
-          kredit: row.posisi === 'K' ? Number(row.nominal) : 0,
-          created_by: currentUsername,
-          created_at: now
-        })
-      }
+      payloadJurnal.push({
+        tanggal_transaksi: form.value.tanggal_tagihan,
+        kwitansi_internal: internalNoBukti, 
+        kwitansi_eksternal: internalNoBukti, 
+        jenis_transaksi: 'PIUTANG', 
+        keterangan: form.value.keterangan,
+        coa_saldo: row.coa_code,
+        pihak_piutang: idPihakLawan, 
+        debet: row.posisi === 'D' ? Number(row.nominal) : 0,
+        kredit: row.posisi === 'K' ? Number(row.nominal) : 0,
+        created_by: currentUsername,
+        created_at: now.toISOString()
+      })
     })
 
+    const { error: errTagihan } = await supabase.from('tagihan_piutang').insert([payloadTagihan])
+    if (errTagihan) throw errTagihan
     const { error: errJurnal } = await supabase.from('transaksi').insert(payloadJurnal)
     if (errJurnal) throw errJurnal 
 
-    AppAlert.success('Tersimpan!', 'Pembayaran berhasil dibukukan dan Jurnal diposting.')
-    closeModal()
-    await fetchDropdowns() // Refresh sisa tagihan di dropdown
-    await fetchData()
+    AppAlert.success('Tersimpan!', 'Invoice Piutang dibuat dan Jurnal diposting.')
+    closeModal(); await fetchData()
   } catch (err) { AppAlert.error('Gagal Menyimpan', err) }
 }
 
 const deleteData = async (id: string, no_internal: string) => {
   if (!canDelete.value) return
   const result = await Swal.fire({
-    title: 'Void Pembayaran?', 
-    html: `Batalkan BKK <b>${no_internal}</b>?<br><small class="text-danger">Aksi ini akan menghapus riwayat bayar dan membalik jurnal multi-baris di Buku Besar.</small>`,
+    title: 'Batalkan Invoice?', 
+    html: `Hapus Invoice <b>${no_internal}</b>?`,
     icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444'
   })
-  
   if (result.isConfirmed) {
     AppAlert.loading('Membatalkan...')
     try {
       const { error: errJurnal } = await supabase.from('transaksi').delete().eq('kwitansi_internal', no_internal)
       if (errJurnal) throw errJurnal
+      const { error: errTagihan } = await supabase.from('tagihan_piutang').delete().eq('id', id)
+      if (errTagihan) throw errTagihan
 
-      const { error: errBayar } = await supabase.from('pembayaran_hutang').delete().eq('id', id)
-      if (errBayar) throw errBayar
-
-      AppAlert.success('Dibatalkan!', 'BKK berhasil di-void.')
-      await fetchDropdowns()
+      AppAlert.success('Dibatalkan!', 'Invoice dan Jurnal berhasil di-void.')
       await fetchData()
-    } catch (err: any) { AppAlert.error('Gagal Membatalkan', err.message || err) }
+    } catch (err: any) { AppAlert.error('Gagal', err.message || err) }
   }
 }
 </script>
@@ -1047,7 +977,6 @@ const deleteData = async (id: string, no_internal: string) => {
 .dropdown-container { z-index: 1056; }
 .custom-dropdown-menu { max-height: 250px; overflow-y: auto; z-index: 1060; }
 .table-visible-overflow { overflow: visible !important; }
-
 .custom-modal-overlay { 
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
   background-color: rgba(15, 23, 42, 0.6); display: flex; 
@@ -1068,34 +997,20 @@ const deleteData = async (id: string, no_internal: string) => {
 
 <style>
 @media print {
-  .screen-only, .sidebar, .topbar, .d-print-none, aside, nav, header {
-    display: none !important;
-  }
-  
+  .screen-only, .sidebar, .topbar, .d-print-none, aside, nav, header { display: none !important; }
   .main-content, .content-area, .app-layout, body, html, #app {
-    margin: 0 !important; padding: 0 !important;
-    background-color: white !important; width: 100% !important;
-    max-width: 100% !important; height: auto !important;
-    overflow: visible !important; position: static !important;
+    margin: 0 !important; padding: 0 !important; background-color: white !important; width: 100% !important;
+    max-width: 100% !important; height: auto !important; overflow: visible !important; position: static !important;
   }
-
   #print-area {
-    display: block !important; width: 100% !important;
-    padding: 10px !important; font-size: 9pt !important;
-    color: black !important;
+    display: block !important; width: 100% !important; padding: 10px !important; font-size: 9pt !important; color: black !important;
   }
-
   @page { margin: 10mm; }
-  
   .table-print { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 9pt !important; }
-  .table-print th, .table-print td { 
-    border: 1px solid black !important; color: black !important; padding: 4px 6px !important; 
-  }
-  
+  .table-print th, .table-print td { border: 1px solid black !important; color: black !important; padding: 4px 6px !important; }
   .info-table td { border: none !important; padding: 2px 8px !important; }
   .bg-light { background-color: #e9ecef !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .print-bg-gray { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  
   .tracking-wide { letter-spacing: 2px; }
   .text-dark { color: black !important; }
 }
