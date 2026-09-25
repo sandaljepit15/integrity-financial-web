@@ -322,7 +322,11 @@ const generateReport = async () => {
 
     // 2. Kalkulasi Item
     coas.forEach(coa => {
-      const relatedTrx = transactions.filter(t => t.coa_saldo.startsWith(coa.coa_code))
+      // PERBAIKAN LOGIKA PENCARIAN (Menambahkan batasan titik agar .99 tidak masuk ke .9)
+      const relatedTrx = transactions.filter(t => 
+        t.coa_saldo === coa.coa_code || t.coa_saldo.startsWith(coa.coa_code + '.')
+      )
+      
       let saldoAwalD = 0, saldoAwalK = 0
       let mutasiD = 0, mutasiK = 0
 
