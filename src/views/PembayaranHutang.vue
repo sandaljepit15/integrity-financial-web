@@ -5,7 +5,7 @@
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h4 class="fw-bold text-dark mb-0">Pembayaran Tagihan / Hutang</h4>
-          <p class="text-muted small mb-0">Pencatatan pelunasan faktur dan penerbitan Bukti Kas Keluar (BKK).</p>
+          <p class="text-muted small mb-0">Pencatatan pelunasan global per entitas/master dan penerbitan BKK.</p>
         </div>
         <button v-if="canCreate" class="btn btn-primary fw-bold px-4 shadow-sm rounded-0" @click="openAddModal">
           <i class="bi bi-wallet2 me-2"></i> Bayar Tagihan
@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <!-- TABEL DATA PEMBAYARAN (GRID KOTAK & FONT KECIL) -->
+      <!-- TABEL DATA PEMBAYARAN -->
       <div class="card border border-secondary shadow-sm rounded-0 overflow-hidden">
         <div class="table-responsive" style="min-height: 440px;">
           <table class="table table-sm table-striped table-hover table-bordered align-middle mb-0" style="min-width: 1200px; font-size: 0.85rem;">
@@ -38,13 +38,13 @@
                   No. BKK & Tgl Bayar <i class="bi ms-1" :class="sortColumn==='no_bukti_internal' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
                 </th>
                 <th width="20%" class="py-3 cursor-pointer" @click="handleSort('nama_pihak_lawan')">
-                  Ref. Tagihan & Pihak Lawan <i class="bi ms-1" :class="sortColumn==='nama_pihak_lawan' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
+                  Entitas / Pihak Lawan <i class="bi ms-1" :class="sortColumn==='nama_pihak_lawan' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
                 </th>
                 <th width="15%" class="py-3 cursor-pointer" @click="handleSort('metode_pembayaran')">
                   Metode Bayar <i class="bi ms-1" :class="sortColumn==='metode_pembayaran' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
                 </th>
                 <th width="16%" class="py-3 cursor-pointer" @click="handleSort('jumlah_bayar')">
-                  Hutang Terbayar <i class="bi ms-1" :class="sortColumn==='jumlah_bayar' ? (sortDirection==='asc' ? 'bi-sort-numeric-down' : 'bi-sort-numeric-up') : 'bi-arrow-down-up opacity-25'"></i>
+                  Nominal Dibayar <i class="bi ms-1" :class="sortColumn==='jumlah_bayar' ? (sortDirection==='asc' ? 'bi-sort-numeric-down' : 'bi-sort-numeric-up') : 'bi-arrow-down-up opacity-25'"></i>
                 </th>
                 <th width="12%" class="py-3 cursor-pointer" @click="handleSort('created_by')">
                   Pembuat <i class="bi ms-1" :class="sortColumn==='created_by' ? (sortDirection==='asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up') : 'bi-arrow-down-up opacity-25'"></i>
@@ -66,8 +66,10 @@
                   <div class="text-muted mt-1" style="font-size: 0.75rem;">{{ formatDate(item.tanggal_pembayaran) }}</div>
                 </td>
                 <td>
-                  <div class="fw-bold text-dark">{{ item.tagihan_hutang?.nomor_tagihan || 'Unknown' }}</div>
-                  <div class="text-primary mt-1" style="font-size: 0.75rem;">{{ item.nama_pihak_lawan }}</div>
+                  <div class="fw-bold text-dark">{{ item.nama_pihak_lawan }}</div>
+                  <div class="text-muted mt-1" style="font-size: 0.75rem;">
+                    {{ item.tagihan_hutang?.nomor_tagihan ? 'Ref: ' + item.tagihan_hutang.nomor_tagihan : 'Pelunasan Akun Master' }}
+                  </div>
                 </td>
                 <td class="text-center">
                   <span class="badge bg-secondary w-100 py-1 rounded-0">{{ item.metode_pembayaran }}</span>
@@ -91,7 +93,6 @@
           </table>
         </div>
 
-        <!-- PAGINATION CONTROLS -->
         <div class="d-flex justify-content-between align-items-center p-3 bg-light border-top">
           <div class="text-muted fw-bold" style="font-size: 0.85rem;">
             Tampil {{ sortedData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1 }} -
@@ -105,13 +106,12 @@
         </div>
       </div>
     </div>
-    <!-- END UI UTAMA -->
 
     <!-- AREA CETAK KHUSUS -->
     <div id="print-area" v-if="itemToPrint">
+      <!-- (KODE CETAK PDF SAMA PERSIS SEPERTI SEBELUMNYA, TIDAK ADA YANG DIUBAH) -->
       <div class="print-container">
         
-        <!-- LAYOUT 1: BUKTI KUITANSI BKK (EKSTERNAL) -->
         <template v-if="printMode === 'kuitansi'">
           <table class="w-100 table-print border-dark mb-4">
             <tr>
@@ -144,7 +144,7 @@
             </tr>
             <tr>
               <td class="fw-bold p-1">Inv. Eksternal</td>
-              <td class="p-1 fw-bold pe-2" style="text-align: right;">{{ itemToPrint.tagihan_hutang?.nomor_tagihan || '-' }}</td>
+              <td class="p-1 fw-bold pe-2" style="text-align: right;">{{ itemToPrint.tagihan_hutang?.nomor_tagihan || 'Pelunasan Akun' }}</td>
               <td class="fw-bold p-1 ps-4">Dibuat Oleh</td>
               <td class="p-1 pe-2" style="text-align: right;">{{ itemToPrint.created_by }}</td>
             </tr>
@@ -198,7 +198,6 @@
           </table>
         </template>
 
-        <!-- LAYOUT 2: BUKTI JURNAL INTERNAL (JU-INTERN BKK) -->
         <template v-if="printMode === 'jurnal'">
           <table class="w-100 table-print border-dark mb-3">
             <tr>
@@ -294,7 +293,7 @@
       </div>
     </div>
 
-    <!-- MODAL FORM INPUT PEMBAYARAN -->
+    <!-- MODAL FORM INPUT PEMBAYARAN - PENDEKATAN REKENING KORAN -->
     <div v-if="isModalOpen" class="custom-modal-overlay screen-only">
       <div v-if="activeDropdown" class="position-fixed top-0 start-0 w-100 h-100 overlay-dropdown" @click="closeAllDropdowns"></div>
 
@@ -309,21 +308,22 @@
         <div class="card-body p-4 modal-body-scroll custom-scrollbar bg-light bg-opacity-50">
           
           <div class="bg-white p-3 rounded-0 border shadow-sm mb-4">
-            <h6 class="fw-bold mb-3 border-bottom pb-2">Pilih Tagihan (Invoice)</h6>
+            <h6 class="fw-bold mb-3 border-bottom pb-2">Pilih Entitas / Akun Hutang Tertagih</h6>
             <div class="row g-3">
               <div class="col-12">
-                <label class="form-label small fw-bold">Daftar Tagihan Belum Lunas <span class="text-danger">*</span></label>
-                <select class="form-select border-primary rounded-0" v-model="form.tagihan_id" @change="handleTagihanSelect">
-                  <option value="" disabled>-- Pilih Dokumen Tagihan --</option>
-                  <option v-for="tgh in tagihanTersedia" :key="tgh.id" :value="tgh.id">
-                    {{ tgh.no_bukti_internal }} | Inv: {{ tgh.nomor_tagihan || '-' }} | Sisa: Rp {{ formatNominal(tgh.sisa_tagihan) }} | {{ tgh.nama_pihak_lawan }}
+                <label class="form-label small fw-bold">Daftar Pihak Lawan yang Memiliki Tagihan <span class="text-danger">*</span></label>
+                <select class="form-select border-primary rounded-0 fw-bold text-dark" v-model="form.master_hutang_id" @change="handleMasterSelect">
+                  <option value="" disabled>-- Pilih Rekening Entitas --</option>
+                  <option v-for="mst in masterTersedia" :key="mst.id" :value="mst.id">
+                    {{ mst.nama_pihak_lawan }} &nbsp;|&nbsp; SPK: {{ mst.nomor_spk }} &nbsp;|&nbsp; Tagihan: Rp {{ formatNominal(mst.sisa_hutang) }}
                   </option>
                 </select>
+                <small class="text-muted mt-1 d-block"><i class="bi bi-info-circle me-1"></i>Sistem akan melunasi Baki Debet (Outstanding) secara otomatis berdasarkan saldo yang tersedia.</small>
               </div>
             </div>
           </div>
 
-          <div v-if="form.tagihan_id" class="bg-white p-3 rounded-0 border shadow-sm mb-4">
+          <div v-if="form.master_hutang_id" class="bg-white p-3 rounded-0 border shadow-sm mb-4">
             <h6 class="fw-bold mb-3 border-bottom pb-2">Data Dokumen Kas Keluar (BKK)</h6>
             <div class="row g-3">
               <div class="col-md-4">
@@ -346,7 +346,7 @@
 
               <div class="col-md-5">
                 <label class="form-label small fw-bold">Pihak Tertagih / Vendor</label>
-                <input type="text" class="form-control bg-light rounded-0" :value="selectedTagihanData?.nama_pihak_lawan" readonly>
+                <input type="text" class="form-control bg-light rounded-0 fw-bold" :value="selectedMasterData?.nama_pihak_lawan" readonly>
               </div>
               <div class="col-md-7">
                 <label class="form-label small fw-bold">No. Reff Transfer Bank</label>
@@ -354,12 +354,12 @@
               </div>
               <div class="col-12">
                 <label class="form-label small fw-bold">Keterangan / Berita Pembayaran <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-0" v-model="form.keterangan" placeholder="Contoh: Pembayaran Termin 1...">
+                <input type="text" class="form-control rounded-0" v-model="form.keterangan" placeholder="Contoh: Pembayaran Pelunasan Akun...">
               </div>
             </div>
           </div>
 
-          <div v-if="form.tagihan_id" class="bg-white p-3 rounded-0 border shadow-sm position-relative" style="z-index: 20;">
+          <div v-if="form.master_hutang_id" class="bg-white p-3 rounded-0 border shadow-sm position-relative" style="z-index: 20;">
             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
               <h6 class="fw-bold mb-0"><i class="bi bi-calculator me-2"></i>Jurnal Pembayaran (Multi-Baris)</h6>
               <span class="badge rounded-0" :class="isBalanced ? 'bg-success' : 'bg-danger'">
@@ -372,14 +372,14 @@
                 <div class="col-md-6">
                   <label class="form-label small fw-bold text-primary">Akun Hutang (Otomatis DEBET)</label>
                   <div class="form-control border-primary bg-white text-dark fw-bold text-truncate rounded-0">
-                    {{ getCoaLabel(selectedTagihanData?.coa_kredit) }}
+                    {{ getCoaLabel(selectedMasterData?.coa_kredit) }}
                   </div>
                 </div>
                 <div class="col-md-6 text-end">
                   <div class="d-flex justify-content-between align-items-center">
                     <div class="text-start">
-                      <small class="text-muted fw-bold d-block mb-1">Sisa Tagihan Maksimal:</small>
-                      <h6 class="mb-0 fw-bold text-dark">Rp {{ formatNominal(selectedTagihanData?.sisa_tagihan) }}</h6>
+                      <small class="text-muted fw-bold d-block mb-1">Total Tunggakan Akun:</small>
+                      <h6 class="mb-0 fw-bold text-dark">Rp {{ formatNominal(selectedMasterData?.sisa_hutang) }}</h6>
                     </div>
                     <div class="text-end" style="width: 230px;">
                       <label class="form-label small fw-bold text-primary mb-1">Nominal Dilunasi <span class="text-danger">*</span></label>
@@ -528,7 +528,7 @@ import { AppAlert } from '../utils/alert'
 import Swal from 'sweetalert2'
 
 const pembayarans = ref<any[]>([])
-const tagihanTersedia = ref<any[]>([])
+const masterTersedia = ref<any[]>([]) // Menggantikan tagihanTersedia
 const listCOA = ref<any[]>([])
 const listAnggaran = ref<any[]>([])
 const company = ref<any>({}) 
@@ -542,7 +542,7 @@ const activeDropdown = ref<string | null>(null)
 const searchQuery = ref('')
 
 const form = ref<any>({
-  tagihan_id: '',
+  master_hutang_id: '',
   no_bukti_internal: '',
   tanggal_pembayaran: '',
   metode_pembayaran: 'Transfer Bank',
@@ -552,7 +552,7 @@ const form = ref<any>({
   jurnal_lawan: [{ coa_code: '', pos_anggaran_id: '', posisi: 'K', nominal: '' }] 
 })
 
-// FITUR FILTER & SORTING & PAGINATION UNTUK TABEL
+// FITUR FILTER & SORTING & PAGINATION
 const searchTableQuery = ref('')
 const searchColumn = ref('semua')
 const sortColumn = ref('created_at')
@@ -571,7 +571,7 @@ const filteredData = computed(() => {
       return (item.no_bukti_internal?.toLowerCase().includes(q) ||
               item.nama_pihak_lawan?.toLowerCase().includes(q) ||
               item.created_by?.toLowerCase().includes(q) ||
-              item.no_reff_transfer?.toLowerCase().includes(q)) // TAMBAHAN NO REFF
+              item.no_reff_transfer?.toLowerCase().includes(q))
     } else {
       return item[searchColumn.value]?.toString().toLowerCase().includes(q)
     }
@@ -594,20 +594,14 @@ const sortedData = computed(() => {
 })
 
 const totalPages = computed(() => Math.ceil(sortedData.value.length / itemsPerPage))
-
 const paginatedData = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage
-  const end = start + itemsPerPage
-  return sortedData.value.slice(start, end)
+  return sortedData.value.slice(start, start + itemsPerPage)
 })
 
 const handleSort = (col: string) => {
-  if (sortColumn.value === col) {
-    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
-  } else {
-    sortColumn.value = col
-    sortDirection.value = 'asc'
-  }
+  if (sortColumn.value === col) sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  else { sortColumn.value = col; sortDirection.value = 'asc' }
   currentPage.value = 1
 }
 
@@ -618,54 +612,39 @@ onMounted(async () => {
   await fetchCompanyProfile()
   await fetchDropdowns()
   await fetchData()
-
   document.addEventListener('click', handleClickOutside)
 })
 
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
+onUnmounted(() => { document.removeEventListener('click', handleClickOutside) })
 
 const canCreate = computed(() => currentUser.value?.can_create === true)
 const canDelete = computed(() => currentUser.value?.can_delete === true)
 
 const generateNoBuktiBKK = () => {
-  const now = new Date()
-  const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g, '')
-  const prefix = 'BKK' 
-  
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let uniqCode = ''
-  for (let i = 0; i < 6; i++) {
-    uniqCode += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  
-  let userId = 'SYSTEM'
+  const now = new Date(); const yyyymmdd = now.toISOString().slice(0,10).replace(/-/g, '')
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; let uniqCode = ''
+  for (let i = 0; i < 6; i++) uniqCode += chars.charAt(Math.floor(Math.random() * chars.length))
+  let userId = 'SYS'
   if (currentUser.value?.user_id) {
     let rawId = String(currentUser.value.user_id).replace(/\s+/g, '').toUpperCase()
     userId = rawId.length > 8 ? rawId.substring(0, 6) : rawId
   }
-
-  return `${prefix}-${yyyymmdd}-${uniqCode}-${userId}`
+  return `BKK-${yyyymmdd}-${uniqCode}-${userId}`
 }
 
-const selectedTagihanData = computed(() => {
-  return tagihanTersedia.value.find(t => t.id === form.value.tagihan_id) || null
+const selectedMasterData = computed(() => {
+  return masterTersedia.value.find(m => m.id === form.value.master_hutang_id) || null
 })
 
 const totalDebet = computed(() => {
   let d = Number(form.value.jumlah_bayar) || 0 
-  form.value.jurnal_lawan.forEach((row: any) => {
-    if (row.posisi === 'D') d += Number(row.nominal) || 0 
-  })
+  form.value.jurnal_lawan.forEach((row: any) => { if (row.posisi === 'D') d += Number(row.nominal) || 0 })
   return d
 })
 
 const totalKredit = computed(() => {
   let k = 0
-  form.value.jurnal_lawan.forEach((row: any) => {
-    if (row.posisi === 'K') k += Number(row.nominal) || 0 
-  })
+  form.value.jurnal_lawan.forEach((row: any) => { if (row.posisi === 'K') k += Number(row.nominal) || 0 })
   return k
 })
 
@@ -674,19 +653,18 @@ const isBalanced = computed(() => totalDebet.value > 0 && totalDebet.value === t
 
 const isFormValid = computed(() => {
   const nominal = Number(form.value.jumlah_bayar)
-  const maxSisa = Number(selectedTagihanData.value?.sisa_tagihan || 0)
+  const maxSisa = Number(selectedMasterData.value?.sisa_hutang || 0)
   const hasEmptyCoa = form.value.jurnal_lawan.some((r: any) => !r.coa_code)
 
-  return form.value.tagihan_id && form.value.tanggal_pembayaran && 
-         form.value.keterangan && 
-         nominal > 0 && nominal <= maxSisa && 
+  return form.value.master_hutang_id && form.value.tanggal_pembayaran && 
+         form.value.keterangan && nominal > 0 && nominal <= maxSisa && 
          !hasEmptyCoa && isBalanced.value
 })
 
-const handleTagihanSelect = () => {
-  if (selectedTagihanData.value) {
-    form.value.jumlah_bayar = selectedTagihanData.value.sisa_tagihan
-    form.value.keterangan = `Pembayaran tagihan ${selectedTagihanData.value.nomor_tagihan || selectedTagihanData.value.no_bukti_internal}`
+const handleMasterSelect = () => {
+  if (selectedMasterData.value) {
+    form.value.jumlah_bayar = selectedMasterData.value.sisa_hutang
+    form.value.keterangan = `Pelunasan Baki Debet ${selectedMasterData.value.nama_pihak_lawan} (SPK: ${selectedMasterData.value.nomor_spk})`
   }
 }
 
@@ -694,7 +672,7 @@ const handleNominalInput = (e: Event) => {
   const target = e.target as HTMLInputElement | null
   if (target) {
     let val = parseRupiah(target.value)
-    const maxSisa = selectedTagihanData.value?.sisa_tagihan || 0
+    const maxSisa = selectedMasterData.value?.sisa_hutang || 0
     if (val > maxSisa) val = maxSisa 
     form.value.jumlah_bayar = val
   }
@@ -702,172 +680,120 @@ const handleNominalInput = (e: Event) => {
 
 const handleRowNominalInput = (idx: number, e: Event) => {
   const target = e.target as HTMLInputElement | null
-  if (target) {
-    form.value.jurnal_lawan[idx].nominal = parseRupiah(target.value)
-  }
+  if (target) form.value.jurnal_lawan[idx].nominal = parseRupiah(target.value)
 }
 
-const handleClickOutside = (event: MouseEvent) => {
-  const target = event.target as HTMLElement
-  if (!target.closest('.dropdown-container')) closeAllDropdowns()
-}
-
+const handleClickOutside = (event: MouseEvent) => { const target = event.target as HTMLElement; if (!target.closest('.dropdown-container')) closeAllDropdowns() }
 const toggleDropdown = (id: string) => {
-  if (activeDropdown.value === id) {
-    closeAllDropdowns()
-  } else {
-    activeDropdown.value = id
-    searchQuery.value = ''
-    nextTick(() => {
-      const input = document.querySelector('.custom-dropdown-menu input') as HTMLInputElement
-      if (input) input.focus()
-    })
+  if (activeDropdown.value === id) closeAllDropdowns()
+  else {
+    activeDropdown.value = id; searchQuery.value = ''
+    nextTick(() => { const input = document.querySelector('.custom-dropdown-menu input') as HTMLInputElement; if (input) input.focus() })
   }
 }
-
-const closeAllDropdowns = () => {
-  activeDropdown.value = null
-  searchQuery.value = ''
-}
+const closeAllDropdowns = () => { activeDropdown.value = null; searchQuery.value = '' }
 
 const filteredCOA = computed(() => {
   if (!searchQuery.value) return listCOA.value
   const q = searchQuery.value.toLowerCase()
   return listCOA.value.filter(c => c.coa_code.toLowerCase().includes(q) || c.nama.toLowerCase().includes(q))
 })
-
 const filteredAnggaran = computed(() => {
   if (!searchQuery.value) return listAnggaran.value
   const q = searchQuery.value.toLowerCase()
-  return listAnggaran.value.filter(a => 
-    (a.kode_pos || '').toLowerCase().includes(q) || 
-    (a.nama_pos || '').toLowerCase().includes(q)
-  )
+  return listAnggaran.value.filter(a => (a.kode_pos || '').toLowerCase().includes(q) || (a.nama_pos || '').toLowerCase().includes(q))
 })
 
 const getCoaLabel = (code: string | undefined) => {
-  if (!code) return 'Pilih COA...'
   const c = listCOA.value.find(x => x.coa_code === code)
-  return c ? `${c.coa_code} - ${c.nama}` : code
+  return c ? `${c.coa_code} - ${c.nama}` : (code || 'Pilih COA...')
 }
-
 const getAnggaranLabel = (id: string) => {
-  if (!id) return '-- Tanpa Anggaran --'
   const a = listAnggaran.value.find(x => x.id === id)
   return a ? `${a.kode_pos} - ${a.nama_pos}` : '-- Tanpa Anggaran --'
 }
 
-const selectRowCoa = (idx: number, code: string) => {
-  form.value.jurnal_lawan[idx].coa_code = code
-  closeAllDropdowns()
-}
+const selectRowCoa = (idx: number, code: string) => { form.value.jurnal_lawan[idx].coa_code = code; closeAllDropdowns() }
+const selectRowAnggaran = (idx: number, id: string) => { form.value.jurnal_lawan[idx].pos_anggaran_id = id; closeAllDropdowns() }
+const addJurnalRow = () => { form.value.jurnal_lawan.push({ coa_code: '', pos_anggaran_id: '', posisi: 'K', nominal: '' }) }
+const removeJurnalRow = (idx: number) => { if (form.value.jurnal_lawan.length > 1) form.value.jurnal_lawan.splice(idx, 1) }
 
-const selectRowAnggaran = (idx: number, id: string) => {
-  form.value.jurnal_lawan[idx].pos_anggaran_id = id
-  closeAllDropdowns()
-}
-
-const addJurnalRow = () => {
-  form.value.jurnal_lawan.push({ coa_code: '', pos_anggaran_id: '', posisi: 'K', nominal: '' })
-}
-const removeJurnalRow = (idx: number) => {
-  if (form.value.jurnal_lawan.length > 1) {
-    form.value.jurnal_lawan.splice(idx, 1)
-  }
-}
-
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-const formatDateStr = (dateStr: string) => {
-  if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth()+1).padStart(2, '0')}-${d.getFullYear()}`
-}
-const formatDateTime = (dateStr: string) => {
-  if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
-const formatNominal = (angka: number) => {
-  if (!angka) return '0'
-  return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(angka)
-}
-const parseRupiah = (val: string) => {
-  if (!val) return 0
-  const parsed = Number(val.replace(/[^0-9]/g, ''))
-  return isNaN(parsed) ? 0 : parsed
-}
-const formatInputRupiah = (val: number | string) => {
-  if (!val || val === 0 || val === '0') return ''
-  return new Intl.NumberFormat('id-ID').format(Number(val))
-}
+// HELPER FORMATTER
+const formatDate = (dateStr: string) => { if (!dateStr) return '-'; return new Date(dateStr).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) }
+const formatDateStr = (dateStr: string) => { if (!dateStr) return '-'; const d = new Date(dateStr); return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth()+1).padStart(2, '0')}-${d.getFullYear()}` }
+const formatDateTime = (dateStr: string) => { if (!dateStr) return '-'; const d = new Date(dateStr); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
+const formatNominal = (angka: number) => { if (!angka) return '0'; return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(angka) }
+const parseRupiah = (val: string) => { if (!val) return 0; const parsed = Number(val.replace(/[^0-9]/g, '')); return isNaN(parsed) ? 0 : parsed }
+const formatInputRupiah = (val: number | string) => { if (!val || val === 0 || val === '0') return ''; return new Intl.NumberFormat('id-ID').format(Number(val)) }
 
 const terbilang = (angka: number): string => {
   const bilangan = ['','Satu','Dua','Tiga','Empat','Lima','Enam','Tujuh','Delapan','Sembilan','Sepuluh','Sebelas']
-  if (angka < 12) return bilangan[angka]
-  if (angka < 20) return terbilang(angka - 10) + ' Belas'
+  if (angka < 12) return bilangan[angka]; if (angka < 20) return terbilang(angka - 10) + ' Belas'
   if (angka < 100) return terbilang(Math.floor(angka / 10)) + ' Puluh ' + terbilang(angka % 10)
-  if (angka < 200) return 'Seratus ' + terbilang(angka - 100)
-  if (angka < 1000) return terbilang(Math.floor(angka / 100)) + ' Ratus ' + terbilang(angka % 100)
-  if (angka < 2000) return 'Seribu ' + terbilang(angka - 1000)
-  if (angka < 1000000) return terbilang(Math.floor(angka / 1000)) + ' Ribu ' + terbilang(angka % 1000)
-  if (angka < 1000000000) return terbilang(Math.floor(angka / 1000000)) + ' Juta ' + terbilang(angka % 1000000)
-  return ''
+  if (angka < 200) return 'Seratus ' + terbilang(angka - 100); if (angka < 1000) return terbilang(Math.floor(angka / 100)) + ' Ratus ' + terbilang(angka % 100)
+  if (angka < 2000) return 'Seribu ' + terbilang(angka - 1000); if (angka < 1000000) return terbilang(Math.floor(angka / 1000)) + ' Ribu ' + terbilang(angka % 1000)
+  if (angka < 1000000000) return terbilang(Math.floor(angka / 1000000)) + ' Juta ' + terbilang(angka % 1000000); return ''
 }
-const formatTerbilang = (angka: number) => {
-  if (!angka) return 'Nol Rupiah'
-  let result = terbilang(angka).replace(/\s+/g, ' ').trim()
-  return result + ' Rupiah'
-}
+const formatTerbilang = (angka: number) => { if (!angka) return 'Nol Rupiah'; return terbilang(angka).replace(/\s+/g, ' ').trim() + ' Rupiah' }
 
-const fetchCompanyProfile = async () => {
-  try {
-    const { data } = await supabase.from('company_profile').select('*').eq('id', 1).single()
-    if (data) company.value = data
-  } catch (err) {}
-}
+const fetchCompanyProfile = async () => { try { const { data } = await supabase.from('company_profile').select('*').eq('id', 1).single(); if (data) company.value = data } catch (err) {} }
 
 const fetchDropdowns = async () => {
   try {
-    // Tarik COA
     const { data: coaData } = await supabase.from('coas').select('*').eq('sifat', 'D').order('coa_code', { ascending: true })
     listCOA.value = coaData || []
-
-    // Tarik Anggaran
     const { data: angData } = await supabase.from('anggaran').select('*').eq('sifat', 'D')
     listAnggaran.value = angData || []
 
-    // Tarik Tagihan yang masih memiliki sisa hutang
-    const { data: tagihanData } = await supabase
-      .from('tagihan_hutang')
-      .select(`id, no_bukti_internal, nomor_tagihan, jumlah_tagihan, coa_kredit, master_hutang(pihak_lawan(id, nama)), pembayaran_hutang(jumlah_bayar)`)
+    // KONSEP CORE BANKING: Hitung Total per Master
+   // KONSEP CORE BANKING: Hitung Total per Master
+    // Gunakan select '*' agar kolom SPK ikut ditarik
+    const { data: masters } = await supabase.from('master_hutang').select('*, pihak_lawan(id, nama)')
+    const { data: tagihans } = await supabase.from('tagihan_hutang').select('master_hutang_id, jumlah_tagihan, coa_kredit')
+    const { data: bayars } = await supabase.from('pembayaran_hutang').select('master_hutang_id, jumlah_bayar')
+
+    const map = new Map()
+    ;(masters || []).forEach((m: any) => {
+      map.set(m.id, {
+        id: m.id, 
+        id_pihak_lawan: m.pihak_lawan?.id, 
+        nama_pihak_lawan: m.pihak_lawan?.nama || 'Unknown',
+        // Mengantisipasi nama kolom SPK di DB Anda
+        nomor_spk: m.nomor_spk || m.no_spk || m.nomor_kontrak || m.keterangan || '-', 
+        total_tagihan: 0, 
+        total_bayar: 0, 
+        coa_kredit: null
+      })
+    })
+
+    ;(tagihans || []).forEach((t: any) => {
+      if (map.has(t.master_hutang_id)) {
+        const mst = map.get(t.master_hutang_id)
+        mst.total_tagihan += Number(t.jumlah_tagihan || 0)
+        if (!mst.coa_kredit && t.coa_kredit) mst.coa_kredit = t.coa_kredit 
+      }
+    })
+
+    ;(bayars || []).forEach((b: any) => {
+      if (b.master_hutang_id && map.has(b.master_hutang_id)) {
+        map.get(b.master_hutang_id).total_bayar += Number(b.jumlah_bayar || 0)
+      }
+    })
+
+    masterTersedia.value = Array.from(map.values())
+      .map(m => ({ ...m, sisa_hutang: m.total_tagihan - m.total_bayar }))
+      .filter(m => m.sisa_hutang > 0)
       
-    if (tagihanData) {
-      const parsed = tagihanData.map((t: any) => {
-        const totalDibayar = t.pembayaran_hutang ? t.pembayaran_hutang.reduce((sum: number, p: any) => sum + Number(p.jumlah_bayar), 0) : 0
-        const sisa = Number(t.jumlah_tagihan) - totalDibayar
-        return {
-          ...t,
-          nama_pihak_lawan: t.master_hutang?.pihak_lawan?.nama || 'Unknown',
-          id_pihak_lawan: t.master_hutang?.pihak_lawan?.id || null,
-          sisa_tagihan: sisa
-        }
-      }).filter(t => t.sisa_tagihan > 0)
-      
-      tagihanTersedia.value = parsed
-    }
   } catch (err) {}
 }
 
 const fetchData = async () => {
   AppAlert.loading('Memuat data...')
   try {
-    // Load tabel utama dengan limit 1000 baris agar tidak lemot
     const { data, error } = await supabase
       .from('pembayaran_hutang')
-      .select(`*, tagihan_hutang(nomor_tagihan, master_hutang(pihak_lawan(nama)))`)
+      // Minta data dari relasi baru (master_hutang_id) dan relasi lama (jika masih tersisa)
+      .select(`*, master_hutang(pihak_lawan(nama)), tagihan_hutang(nomor_tagihan, master_hutang(pihak_lawan(nama)))`)
       .order('created_at', { ascending: false })
       .limit(1000)
       
@@ -875,7 +801,7 @@ const fetchData = async () => {
 
     pembayarans.value = data.map((d: any) => ({
       ...d,
-      nama_pihak_lawan: d.tagihan_hutang?.master_hutang?.pihak_lawan?.nama || 'Unknown'
+      nama_pihak_lawan: d.master_hutang?.pihak_lawan?.nama || d.tagihan_hutang?.master_hutang?.pihak_lawan?.nama || 'Unknown'
     }))
     
     AppAlert.close()
@@ -885,7 +811,7 @@ const fetchData = async () => {
 const openAddModal = () => {
   if (!canCreate.value) return
   form.value = { 
-    tagihan_id: '',
+    master_hutang_id: '',
     no_bukti_internal: generateNoBuktiBKK(),
     tanggal_pembayaran: new Date().toISOString().slice(0,10),
     metode_pembayaran: 'Transfer Bank',
@@ -897,45 +823,31 @@ const openAddModal = () => {
   isModalOpen.value = true
 }
 
-const closeModal = () => {
-  isModalOpen.value = false
-  closeAllDropdowns()
-}
+const closeModal = () => { isModalOpen.value = false; closeAllDropdowns() }
 
-// CETAK JURNAL INTERNAL BKK
+// CETAK JURNAL INTERNAL
 const printJurnal = async (item: any) => {
   AppAlert.loading('Mempersiapkan Jurnal Internal...')
   try {
     const { data: trxData, error } = await supabase.from('transaksi').select('*').eq('kwitansi_internal', item.no_bukti_internal).order('debet', { ascending: false }) 
     if (error) throw error
-    
     let tD = 0, tK = 0
     const mappedTrx = trxData.map((t: any) => {
-      tD += Number(t.debet)
-      tK += Number(t.kredit)
+      tD += Number(t.debet); tK += Number(t.kredit)
       const matchedCoa = listCOA.value.find(c => c.coa_code === t.coa_saldo)
       return { ...t, nama_akun: matchedCoa ? matchedCoa.nama : 'Unknown' }
     })
 
-    itemToPrint.value = { 
-      ...item, 
-      jurnalEntries: mappedTrx,
-      totalBalanceD: tD,
-      totalBalanceK: tK
-    }
-    printMode.value = 'jurnal' 
-    AppAlert.close()
-    await nextTick(); setTimeout(() => window.print(), 400)
+    itemToPrint.value = { ...item, jurnalEntries: mappedTrx, totalBalanceD: tD, totalBalanceK: tK }
+    printMode.value = 'jurnal'; AppAlert.close(); await nextTick(); setTimeout(() => window.print(), 400)
   } catch (err) { AppAlert.error('Gagal memuat jurnal', err) }
 }
 
-// CETAK BKK EKSTERNAL (KUITANSI)
+// CETAK KUITANSI BKK
 const printKuitansi = async (item: any) => {
   AppAlert.loading('Mempersiapkan Kuitansi BKK...')
-  itemToPrint.value = item
-  printMode.value = 'kuitansi'
-  AppAlert.close()
-  await nextTick(); setTimeout(() => window.print(), 400)
+  itemToPrint.value = item; printMode.value = 'kuitansi'
+  AppAlert.close(); await nextTick(); setTimeout(() => window.print(), 400)
 }
 
 const saveData = async () => {
@@ -947,12 +859,12 @@ const saveData = async () => {
     const now = new Date().toISOString()
     const nominalHutang = Number(form.value.jumlah_bayar)
     
-    const idPihakLawan = selectedTagihanData.value?.id_pihak_lawan
-    const coaHutang = selectedTagihanData.value?.coa_kredit // Akun hutang yang dulu dikredit, sekarang akan didebet
+    const idPihakLawan = selectedMasterData.value?.id_pihak_lawan
+    const coaHutang = selectedMasterData.value?.coa_kredit // Akun hutang didebet
 
-    // 1. Insert ke tabel pembayaran_hutang
+    // 1. Insert ke tabel pembayaran_hutang (PENGGUNAAN MASTER_ID, BUKAN TAGIHAN_ID)
     const { error: errBayar } = await supabase.from('pembayaran_hutang').insert([{
-      tagihan_hutang_id: form.value.tagihan_id,
+      master_hutang_id: form.value.master_hutang_id,
       no_bukti_internal: form.value.no_bukti_internal,
       tanggal_pembayaran: form.value.tanggal_pembayaran,
       metode_pembayaran: form.value.metode_pembayaran,
@@ -965,14 +877,12 @@ const saveData = async () => {
     }])
     if (errBayar) throw errBayar
 
-    // 2. Insert Double Entry ke tabel transaksi (Buku Besar)
+    // 2. Insert Double Entry
     const payloadJurnal = []
-
-    // Baris 1: DEBET Pelunasan Hutang Utama
     payloadJurnal.push({
       tanggal_transaksi: form.value.tanggal_pembayaran,
       kwitansi_internal: form.value.no_bukti_internal,
-      kwitansi_eksternal: selectedTagihanData.value?.nomor_tagihan,
+      kwitansi_eksternal: 'PELUNASAN_AKUN', // Karena ini menembak master langsung
       jenis_transaksi: 'KAS_KELUAR', 
       keterangan: form.value.keterangan,
       coa_saldo: coaHutang,
@@ -985,13 +895,12 @@ const saveData = async () => {
       created_at: now
     })
 
-    // Baris 2..N: Akun Lawan Dinamis (Kredit Kas/Bank, Debet Biaya Admin, dll)
     form.value.jurnal_lawan.forEach((row: any) => {
       if (Number(row.nominal) > 0 && row.coa_code) {
         payloadJurnal.push({
           tanggal_transaksi: form.value.tanggal_pembayaran,
           kwitansi_internal: form.value.no_bukti_internal,
-          kwitansi_eksternal: selectedTagihanData.value?.nomor_tagihan,
+          kwitansi_eksternal: 'PELUNASAN_AKUN',
           jenis_transaksi: 'KAS_KELUAR', 
           keterangan: form.value.keterangan,
           coa_saldo: row.coa_code,
@@ -1010,9 +919,9 @@ const saveData = async () => {
     const { error: errJurnal } = await supabase.from('transaksi').insert(payloadJurnal)
     if (errJurnal) throw errJurnal 
 
-    AppAlert.success('Tersimpan!', 'Pembayaran berhasil dibukukan dan Jurnal diposting.')
+    AppAlert.success('Tersimpan!', 'Pembayaran berhasil memotong saldo Master.')
     closeModal()
-    await fetchDropdowns() // Refresh sisa tagihan di dropdown
+    await fetchDropdowns()
     await fetchData()
   } catch (err) { AppAlert.error('Gagal Menyimpan', err) }
 }
@@ -1030,7 +939,6 @@ const deleteData = async (id: string, no_internal: string) => {
     try {
       const { error: errJurnal } = await supabase.from('transaksi').delete().eq('kwitansi_internal', no_internal)
       if (errJurnal) throw errJurnal
-
       const { error: errBayar } = await supabase.from('pembayaran_hutang').delete().eq('id', id)
       if (errBayar) throw errBayar
 
@@ -1043,11 +951,11 @@ const deleteData = async (id: string, no_internal: string) => {
 </script>
 
 <style scoped>
+/* KODE STYLE SAMA PERSIS SEPERTI SEBELUMNYA */
 .cursor-pointer { cursor: pointer; }
 .dropdown-container { z-index: 1056; }
 .custom-dropdown-menu { max-height: 250px; overflow-y: auto; z-index: 1060; }
 .table-visible-overflow { overflow: visible !important; }
-
 .custom-modal-overlay { 
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
   background-color: rgba(15, 23, 42, 0.6); display: flex; 
@@ -1059,43 +967,26 @@ const deleteData = async (id: string, no_internal: string) => {
 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
-
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
 #print-area { display: none; }
 </style>
 
 <style>
+/* KODE PRINT SAMA PERSIS SEPERTI SEBELUMNYA */
 @media print {
-  .screen-only, .sidebar, .topbar, .d-print-none, aside, nav, header {
-    display: none !important;
-  }
-  
+  .screen-only, .sidebar, .topbar, .d-print-none, aside, nav, header { display: none !important; }
   .main-content, .content-area, .app-layout, body, html, #app {
-    margin: 0 !important; padding: 0 !important;
-    background-color: white !important; width: 100% !important;
-    max-width: 100% !important; height: auto !important;
-    overflow: visible !important; position: static !important;
+    margin: 0 !important; padding: 0 !important; background-color: white !important; width: 100% !important;
+    max-width: 100% !important; height: auto !important; overflow: visible !important; position: static !important;
   }
-
-  #print-area {
-    display: block !important; width: 100% !important;
-    padding: 10px !important; font-size: 9pt !important;
-    color: black !important;
-  }
-
+  #print-area { display: block !important; width: 100% !important; padding: 10px !important; font-size: 9pt !important; color: black !important; }
   @page { margin: 10mm; }
-  
   .table-print { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 9pt !important; }
-  .table-print th, .table-print td { 
-    border: 1px solid black !important; color: black !important; padding: 4px 6px !important; 
-  }
-  
+  .table-print th, .table-print td { border: 1px solid black !important; color: black !important; padding: 4px 6px !important; }
   .info-table td { border: none !important; padding: 2px 8px !important; }
   .bg-light { background-color: #e9ecef !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .print-bg-gray { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  
   .tracking-wide { letter-spacing: 2px; }
   .text-dark { color: black !important; }
 }
