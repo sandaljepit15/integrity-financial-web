@@ -964,6 +964,11 @@ const printRekap = async (no_bukti: string) => {
 const closeModal = () => { isModalOpen.value = false; closeAllDropdowns() }
 const handleNumberInput = (field: string, e: Event) => { const target = e.target as HTMLInputElement | null; if (target) form.value[field] = parseRupiah(target.value) }
 const handleGridNilaiInput = (idx: number, e: Event) => { const target = e.target as HTMLInputElement | null; if (target) { form.value.penyesuaian[idx].nilai_input = parseRupiah(target.value); updateNilaiCalculated(idx) } }
+// --- TAMBAHKAN FUNGSI INI ---
+const getHistoriFee = (coaDebet: string, coaKredit: string) => { 
+  return feeHistoryMap.value[`${coaDebet}-${coaKredit}`] || 0 
+}
+// ----------------------------
 const updateNilaiCalculated = (idx: number) => { const row = form.value.penyesuaian[idx]; if(row.mode_input === 'akumulasi') { const calc = Number(row.nilai_input) - getHistoriFee(row.coa_debet, row.coa_kredit); row.nominal_calculated = calc > 0 ? calc : 0 } else { row.nominal_calculated = Number(row.nilai_input) } }
 const handleClickOutside = (event: MouseEvent) => { const target = event.target as HTMLElement; if (!target.closest('.dropdown-container')) closeAllDropdowns() }
 const toggleDropdown = (id: string) => { if (activeDropdown.value === id) closeAllDropdowns(); else { activeDropdown.value = id; searchQuery.value = ''; nextTick(() => { const input = document.querySelector('.custom-dropdown-menu input') as HTMLInputElement; if (input) input.focus() }) } }
